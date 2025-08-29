@@ -1,11 +1,78 @@
-import { useQuery } from 'react-query'
-import { dashboardApi } from '../services/api'
-import { TicketStatus, TicketPriority } from '@service-ticket/types'
+import { useEffect, useState } from 'react'
+import { useTicketsStore } from '../stores/tickets'
+import { TicketStatus } from '@service-ticket/types'
+import { Ticket, Clock, TrendingUp, BarChart3 } from 'lucide-react'
+
+interface DashboardStats {
+  totalTickets: number
+  openTickets: number
+  inProgressTickets: number
+  resolvedTickets: number
+  avgResolutionTime: number
+  ticketsByPriority: Record<string, number>
+  ticketsByCategory: Record<string, number>
+  recentActivity: Array<{
+    id: string
+    description: string
+    userName: string
+    timestamp: string
+  }>
+}
 
 const Dashboard = () => {
-  const { data: stats, isLoading } = useQuery('dashboard-stats', dashboardApi.getStats)
+  const { tickets, fetchTickets, loading } = useTicketsStore()
+  const [stats, setStats] = useState<DashboardStats>({
+    totalTickets: 0,
+    openTickets: 0,
+    inProgressTickets: 0,
+    resolvedTickets: 0,
+    avgResolutionTime: 0,
+    ticketsByPriority: {},
+    ticketsByCategory: {},
+    recentActivity: []
+  })
 
-  if (isLoading) {
+  useEffect(() => {
+    fetchTickets()
+  }, [fetchTickets])
+
+  useEffect(() => {
+    if (tickets.length > 0) {
+      const totalTickets = tickets.length
+      const openTickets = tickets.filter(t => t.status === TicketStatus.OPEN).length
+      const inProgressTickets = tickets.filter(t => t.status === TicketStatus.IN_PROGRESS).length
+      const resolvedTickets = tickets.filter(t => t.status === TicketStatus.RESOLVED || t.status === TicketStatus.CLOSED).length
+      
+      const severityCounts = tickets.reduce((acc, ticket) => {
+        const severity = ticket.severity
+        acc[severity] = (acc[severity] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+
+      // Mock recent activity from tickets
+      const recentActivity = tickets
+        .slice(0, 5)
+        .map(ticket => ({
+          id: ticket.id,
+          description: `Ticket "${ticket.title}" was ${ticket.status}`,
+          userName: 'System',
+          timestamp: ticket.updatedAt.toISOString() || ticket.createdAt.toISOString()
+        }))
+
+      setStats({
+        totalTickets,
+        openTickets,
+        inProgressTickets,
+        resolvedTickets,
+        avgResolutionTime: 2.5, // Mock average
+        ticketsByPriority: severityCounts,
+        ticketsByCategory: {},
+        recentActivity
+      })
+    }
+  }, [tickets])
+
+  if (loading) {
     return (
       <div className="animate-pulse">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -20,17 +87,6 @@ const Dashboard = () => {
         </div>
       </div>
     )
-  }
-
-  const statsData = stats?.data || {
-    totalTickets: 0,
-    openTickets: 0,
-    inProgressTickets: 0,
-    resolvedTickets: 0,
-    avgResolutionTime: 0,
-    ticketsByPriority: {},
-    ticketsByCategory: {},
-    recentActivity: [],
   }
 
   return (
@@ -48,9 +104,7 @@ const Dashboard = () => {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">T</span>
-                </div>
+                <Ticket className="h-8 w-8 text-blue-500" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -58,7 +112,7 @@ const Dashboard = () => {
                     Total Tickets
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {statsData.totalTickets}
+                    {stats.totalTickets}
                   </dd>
                 </dl>
               </div>
@@ -70,9 +124,7 @@ const Dashboard = () => {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">O</span>
-                </div>
+                <Clock className="h-8 w-8 text-green-500" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -80,7 +132,7 @@ const Dashboard = () => {
                     Open Tickets
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {statsData.openTickets}
+                    {stats.openTickets}
                   </dd>
                 </dl>
               </div>
@@ -92,9 +144,7 @@ const Dashboard = () => {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">P</span>
-                </div>
+                <TrendingUp className="h-8 w-8 text-yellow-500" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -102,7 +152,7 @@ const Dashboard = () => {
                     In Progress
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {statsData.inProgressTickets}
+                    {stats.inProgressTickets}
                   </dd>
                 </dl>
               </div>
@@ -114,9 +164,7 @@ const Dashboard = () => {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">R</span>
-                </div>
+                <BarChart3 className="h-8 w-8 text-purple-500" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -124,7 +172,7 @@ const Dashboard = () => {
                     Resolved
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {statsData.resolvedTickets}
+                    {stats.resolvedTickets}
                   </dd>
                 </dl>
               </div>
@@ -141,11 +189,11 @@ const Dashboard = () => {
           </h3>
           <div className="flow-root">
             <ul className="-mb-8">
-              {statsData.recentActivity.length > 0 ? (
-                statsData.recentActivity.map((activity, activityIdx) => (
+              {stats.recentActivity.length > 0 ? (
+                stats.recentActivity.map((activity, activityIdx) => (
                   <li key={activity.id}>
                     <div className="relative pb-8">
-                      {activityIdx !== statsData.recentActivity.length - 1 ? (
+                      {activityIdx !== stats.recentActivity.length - 1 ? (
                         <span
                           className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
                           aria-hidden="true"
@@ -153,7 +201,7 @@ const Dashboard = () => {
                       ) : null}
                       <div className="relative flex space-x-3">
                         <div>
-                          <span className="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center ring-8 ring-white">
+                          <span className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
                             <span className="text-white text-xs font-medium">
                               {activity.userName.charAt(0)}
                             </span>

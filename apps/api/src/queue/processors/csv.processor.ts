@@ -32,7 +32,7 @@ export class CsvProcessor {
         .select()
         .from(tickets)
         .where(and(
-          eq(tickets.status, 'pending'),
+          eq(tickets.status, 'OPEN'),
           eq(tickets.deletedAt, null)
         ));
 
@@ -82,7 +82,7 @@ export class CsvProcessor {
         .select()
         .from(tickets)
         .where(and(
-          eq(tickets.status, 'pending'),
+          eq(tickets.status, 'OPEN'),
           eq(tickets.deletedAt, null)
         ));
 
@@ -91,8 +91,8 @@ export class CsvProcessor {
         return { processedCount: 0 };
       }
 
-      // Simulate automated processing: 30% pending, 30% open, 30% closed, 10% remain pending
-      const statusDistribution: TicketStatus[] = ['pending', 'open', 'closed'];
+      // Simulate automated processing: 30% IN_PROGRESS, 30% RESOLVED, 30% CLOSED, 10% remain OPEN
+      const statusDistribution: TicketStatus[] = ['IN_PROGRESS', 'RESOLVED', 'CLOSED'];
       let processedCount = 0;
 
       for (const ticket of pendingTickets) {

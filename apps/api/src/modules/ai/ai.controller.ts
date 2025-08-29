@@ -15,7 +15,7 @@ import {
 import { AiService, TicketAnalysisRequest } from './ai.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import { UserRole } from '../../database/schema';
+import type { UserRole } from '../../database/schema';
 
 @ApiTags('AI Analysis')
 @ApiBearerAuth()
@@ -25,7 +25,7 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post('analyze')
-  @Roles([UserRole.ASSOCIATE, UserRole.MANAGER])
+  @Roles(['associate', 'manager'])
   @ApiOperation({ summary: 'Analyze ticket content with AI' })
   @ApiBody({
     description: 'Ticket data for AI analysis',
@@ -45,7 +45,7 @@ export class AiController {
   }
 
   @Post('predict-severity')
-  @Roles([UserRole.ASSOCIATE, UserRole.MANAGER])
+  @Roles(['associate', 'manager'])
   @ApiOperation({ summary: 'Predict ticket severity using AI' })
   @ApiBody({
     description: 'Ticket content for severity prediction',
@@ -68,7 +68,7 @@ export class AiController {
   }
 
   @Post('categorize')
-  @Roles([UserRole.ASSOCIATE, UserRole.MANAGER])
+  @Roles(['associate', 'manager'])
   @ApiOperation({ summary: 'Categorize ticket using AI' })
   @ApiBody({
     description: 'Ticket content for categorization',
@@ -91,7 +91,7 @@ export class AiController {
   }
 
   @Post('sentiment')
-  @Roles([UserRole.ASSOCIATE, UserRole.MANAGER])
+  @Roles(['associate', 'manager'])
   @ApiOperation({ summary: 'Analyze sentiment of text' })
   @ApiBody({
     description: 'Text for sentiment analysis',
@@ -110,7 +110,7 @@ export class AiController {
   }
 
   @Post('suggest-response')
-  @Roles([UserRole.ASSOCIATE, UserRole.MANAGER])
+  @Roles(['associate', 'manager'])
   @ApiOperation({ summary: 'Get AI-suggested response for ticket' })
   @ApiBody({
     description: 'Ticket data for response suggestion',

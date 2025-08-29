@@ -4,22 +4,22 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { users } from './users.schema';
 
-// Ticket severity enum
+// Ticket severity enum - aligned with requirements: Very High, High, Medium, Low, Easy
 export const ticketSeverityEnum = pgEnum('ticket_severity', [
-  'very_high',
-  'high', 
-  'medium',
-  'low',
-  'easy'
+  'VERY_HIGH',
+  'HIGH', 
+  'MEDIUM',
+  'LOW',
+  'EASY'
 ]);
 
 // Ticket status enum
 export const ticketStatusEnum = pgEnum('ticket_status', [
-  'draft',
-  'review', 
-  'pending',
-  'open',
-  'closed'
+  'OPEN',
+  'IN_PROGRESS',
+  'RESOLVED',
+  'CLOSED',
+  'REOPENED'
 ]);
 
 // Tickets table schema
@@ -28,8 +28,8 @@ export const tickets = pgTable('tickets', {
   ticketNumber: varchar('ticket_number', { length: 20 }).notNull().unique(),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description').notNull(),
-  severity: ticketSeverityEnum('severity').notNull().default('medium'),
-  status: ticketStatusEnum('status').notNull().default('draft'),
+  severity: ticketSeverityEnum('severity').notNull().default('MEDIUM'),
+  status: ticketStatusEnum('status').notNull().default('OPEN'),
   dueDate: date('due_date'),
   createdBy: uuid('created_by').notNull().references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -85,8 +85,8 @@ export const ticketHistoryRelations = relations(ticketHistory, ({ one }) => ({
 export const insertTicketSchema = createInsertSchema(tickets, {
   title: z.string().min(1).max(255),
   description: z.string().min(1),
-  severity: z.enum(['very_high', 'high', 'medium', 'low', 'easy']),
-  status: z.enum(['draft', 'review', 'pending', 'open', 'closed']),
+  severity: z.enum(['VERY_HIGH', 'HIGH', 'MEDIUM', 'LOW', 'EASY']),
+  status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED']),
   dueDate: z.string().optional(),
 });
 
@@ -106,7 +106,7 @@ export const insertTicketHistorySchema = createInsertSchema(ticketHistory, {
 
 export type Ticket = typeof tickets.$inferSelect;
 export type NewTicket = typeof tickets.$inferInsert;
-export type TicketSeverity = 'very_high' | 'high' | 'medium' | 'low' | 'easy';
+export type TicketSeverity = 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | 'EASY';
 export type TicketStatus = 'draft' | 'review' | 'pending' | 'open' | 'closed';
 
 export type TicketHistory = typeof ticketHistory.$inferSelect;

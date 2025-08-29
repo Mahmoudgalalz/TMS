@@ -39,10 +39,11 @@ export enum TicketStatus {
 }
 
 export enum TicketSeverity {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
+  VERY_HIGH = 'VERY_HIGH',
   HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL',
+  MEDIUM = 'MEDIUM',
+  LOW = 'LOW',
+  EASY = 'EASY',
 }
 
 // Ticket History Types
@@ -108,6 +109,21 @@ export interface TicketFilterDto {
   sortOrder?: 'asc' | 'desc';
   page?: number;
   limit?: number;
+}
+
+// Legacy alias for backward compatibility
+export type TicketQuery = TicketFilterDto;
+
+// Comment Types
+export interface Comment {
+  id: string;
+  ticketId: string;
+  content: string;
+  isInternal: boolean;
+  createdById: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
 }
 
 // DTO Types for API

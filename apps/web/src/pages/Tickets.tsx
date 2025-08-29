@@ -1,23 +1,23 @@
 import { useState } from 'react'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { PlusIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { ticketsApi } from '../services/api'
-import { TicketStatus, TicketPriority, TicketQuery } from '@service-ticket/types'
+import { TicketStatus, TicketSeverity, TicketFilterDto } from '@service-ticket/types'
 
 const Tickets = () => {
-  const [query, setQuery] = useState<TicketQuery>({
+  const [query, setQuery] = useState<TicketFilterDto>({
     page: 1,
     limit: 20,
     sortBy: 'createdAt',
     sortOrder: 'desc',
   })
 
-  const { data, isLoading, refetch } = useQuery(
-    ['tickets', query],
-    () => ticketsApi.getTickets(query),
-    { keepPreviousData: true }
-  )
+  const { data, isLoading } = useQuery({
+    queryKey: ['tickets', query],
+    queryFn: () => ticketsApi.getTickets(query),
+    placeholderData: (previousData) => previousData
+  })
 
   const tickets = data?.data?.items || []
   const totalPages = data?.data?.totalPages || 1
@@ -28,7 +28,7 @@ const Tickets = () => {
         return 'bg-green-100 text-green-800'
       case TicketStatus.IN_PROGRESS:
         return 'bg-yellow-100 text-yellow-800'
-      case TicketStatus.PENDING:
+      case TicketStatus.REOPENED:
         return 'bg-orange-100 text-orange-800'
       case TicketStatus.RESOLVED:
         return 'bg-blue-100 text-blue-800'
@@ -39,15 +39,18 @@ const Tickets = () => {
     }
   }
 
-  const getPriorityColor = (priority: TicketPriority) => {
-    switch (priority) {
-      case TicketPriority.LOW:
+  const getSeverityColor = (severity: TicketSeverity) => {
+    switch (severity) {
+      case TicketSeverity.LOW:
         return 'text-green-600'
-      case TicketPriority.MEDIUM:
+      case TicketSeverity.EASY:
+        return 'text-slate-600'
+      case TicketSeverity.MEDIUM:
         return 'text-yellow-600'
-      case TicketPriority.HIGH:
+      case TicketSeverity.HIGH:
         return 'text-orange-600'
-      case TicketPriority.URGENT:
+      
+      case TicketSeverity.VERY_HIGH:
         return 'text-red-600'
       default:
         return 'text-gray-600'
@@ -92,9 +95,9 @@ const Tickets = () => {
         <div className="flex items-center space-x-4">
           <FunnelIcon className="h-5 w-5 text-gray-400" />
           <select
-            value={query.status?.[0] || ''}
+            value={query.status || ''}
             onChange={(e) =>
-              setQuery({ ...query, status: e.target.value ? [e.target.value as TicketStatus] : undefined })
+              setQuery({ ...query, status: e.target.value ? e.target.value as TicketStatus : undefined })
             }
             className="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
           >
@@ -106,16 +109,16 @@ const Tickets = () => {
             ))}
           </select>
           <select
-            value={query.priority?.[0] || ''}
+            value={query.severity || ''}
             onChange={(e) =>
-              setQuery({ ...query, priority: e.target.value ? [e.target.value as TicketPriority] : undefined })
+              setQuery({ ...query, severity: e.target.value ? e.target.value as TicketSeverity : undefined })
             }
             className="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
           >
-            <option value="">All Priorities</option>
-            {Object.values(TicketPriority).map((priority) => (
-              <option key={priority} value={priority}>
-                {priority.toUpperCase()}
+            <option value="">All Severities</option>
+            {Object.values(TicketSeverity).map((severity) => (
+              <option key={severity} value={severity}>
+                {severity.toUpperCase()}
               </option>
             ))}
           </select>
@@ -149,11 +152,11 @@ const Tickets = () => {
                     </div>
                     <div className="mt-2 flex">
                       <div className="flex items-center text-sm text-gray-500">
-                        <span className={`font-medium ${getPriorityColor(ticket.priority)}`}>
-                          {ticket.priority.toUpperCase()}
+                        <span className={`font-medium ${getSeverityColor(ticket.severity)}`}>
+                          {ticket.severity.toUpperCase()}
                         </span>
                         <span className="mx-2">•</span>
-                        <span>{ticket.category}</span>
+                        <span>#{ticket.ticketNumber}</span>
                         <span className="mx-2">•</span>
                         <span>{new Date(ticket.createdAt).toLocaleDateString()}</span>
                       </div>

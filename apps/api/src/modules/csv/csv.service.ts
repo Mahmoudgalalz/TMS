@@ -296,12 +296,12 @@ export class CsvService {
   }
 
   private isValidStatusTransition(currentStatus: TicketStatus, newStatus: TicketStatus): boolean {
-    const validTransitions = {
-      [TicketStatus.OPEN]: [TicketStatus.IN_PROGRESS, TicketStatus.CLOSED],
-      [TicketStatus.IN_PROGRESS]: [TicketStatus.OPEN, TicketStatus.RESOLVED, TicketStatus.CLOSED],
-      [TicketStatus.RESOLVED]: [TicketStatus.CLOSED, TicketStatus.REOPENED],
-      [TicketStatus.CLOSED]: [TicketStatus.REOPENED],
-      [TicketStatus.REOPENED]: [TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED, TicketStatus.CLOSED],
+    const validTransitions: Record<TicketStatus, TicketStatus[]> = {
+      'OPEN': ['IN_PROGRESS', 'CLOSED'],
+      'IN_PROGRESS': ['OPEN', 'RESOLVED', 'CLOSED'],
+      'RESOLVED': ['CLOSED', 'REOPENED'],
+      'CLOSED': ['REOPENED'],
+      'REOPENED': ['IN_PROGRESS', 'RESOLVED', 'CLOSED'],
     };
 
     return validTransitions[currentStatus]?.includes(newStatus) || false;

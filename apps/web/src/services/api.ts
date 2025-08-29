@@ -4,24 +4,33 @@ import {
   UpdateTicketDto, 
   CreateCommentDto, 
   TicketQuery,
-  ApiResponse,
   PaginatedResponse,
   Ticket,
   User,
   Comment
 } from '@service-ticket/types'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 })
 
 // Request interceptor to add auth token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('auth-storage')
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    try {
+      const authData = JSON.parse(token)
+      if (authData.state?.token) {
+        config.headers.Authorization = `Bearer ${authData.state.token}`
+      }
+    } catch (error) {
+      console.error('Error parsing auth token:', error)
+    }
   }
   return config
 })
@@ -31,8 +40,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      localStorage.removeItem('auth-storage')
       window.location.href = '/login'
     }
     return Promise.reject(error)
