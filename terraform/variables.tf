@@ -124,6 +124,26 @@ variable "api_key" {
   default     = ""
 }
 
+variable "cloudflare_account_id" {
+  description = "Cloudflare Account ID"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "ai_secret" {
+  description = "AI service secret key"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "cors_origin" {
+  description = "CORS origin URLs (comma-separated for multiple origins)"
+  type        = string
+  default     = "http://localhost:5173"
+}
+
 # Monitoring
 variable "notification_email" {
   description = "Email for monitoring notifications"

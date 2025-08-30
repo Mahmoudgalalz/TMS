@@ -54,6 +54,15 @@ webhook_secret = ""
 # General API key for external services
 api_key = ""
 
+# Cloudflare Account ID
+cloudflare_account_id = ""
+
+# AI service secret key
+ai_secret = ""
+
+# CORS Configuration (supports single URL or comma-separated list)
+cors_origin = "https://your-frontend-domain.com,https://your-alb-url.us-east-1.elb.amazonaws.com"
+
 # INSTRUCTIONS:
 # 1. Copy this file: cp terraform.tfvars.example terraform.tfvars
 # 2. Update configuration values (non-secret values)

@@ -162,12 +162,40 @@ resource "aws_ecs_task_definition" "api" {
           value = "3000"
         },
         {
-          name  = "DATABASE_HOST"
+          name  = "DB_HOST"
           value = var.database_endpoint
+        },
+        {
+          name  = "DB_PORT"
+          value = "5432"
+        },
+        {
+          name  = "DB_USERNAME"
+          value = "postgres"
+        },
+        {
+          name  = "DB_NAME"
+          value = "service_tickets"
         },
         {
           name  = "REDIS_HOST"
           value = var.redis_endpoint
+        },
+        {
+          name  = "REDIS_PORT"
+          value = "6379"
+        },
+        {
+          name  = "CORS_ORIGIN"
+          value = var.cors_origin
+        },
+        {
+          name  = "JWT_EXPIRES_IN"
+          value = "24h"
+        },
+        {
+          name  = "LOG_LEVEL"
+          value = "info"
         }
       ]
 

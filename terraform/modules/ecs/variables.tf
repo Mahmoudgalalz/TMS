@@ -121,17 +121,17 @@ variable "app_config_secret_arn" {
   default     = ""
 }
 
-variable "jwt_secret" {
-  description = "JWT secret for authentication (fallback if not using secrets manager)"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
 
 variable "log_retention_days" {
   description = "CloudWatch log retention in days"
   type        = number
   default     = 7
+}
+
+variable "cors_origin" {
+  description = "CORS origin URLs (comma-separated for multiple origins)"
+  type        = string
+  default     = "http://localhost:5173"
 }
 
 variable "tags" {

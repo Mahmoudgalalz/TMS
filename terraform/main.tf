@@ -6,6 +6,14 @@ terraform {
       version = "~> 5.0"
     }
   }
+  
+  backend "s3" {
+    bucket         = "service-ticket-system-terraform-state-1756564675"
+    key            = "terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "service-ticket-system-terraform-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
@@ -45,14 +53,16 @@ module "secrets" {
   name_prefix = local.name_prefix
   
   # Pass secrets from variables (can be empty for auto-generation)
-  db_master_password = var.db_master_password
-  jwt_secret        = var.jwt_secret
-  redis_password    = var.redis_password
-  smtp_password     = var.smtp_password
-  cloudflare_token  = var.cloudflare_token
-  encryption_key    = var.encryption_key
-  webhook_secret    = var.webhook_secret
-  api_key          = var.api_key
+  db_master_password    = var.db_master_password
+  jwt_secret           = var.jwt_secret
+  redis_password       = var.redis_password
+  smtp_password        = var.smtp_password
+  cloudflare_token     = var.cloudflare_token
+  cloudflare_account_id = var.cloudflare_account_id
+  ai_secret           = var.ai_secret
+  encryption_key      = var.encryption_key
+  webhook_secret      = var.webhook_secret
+  api_key             = var.api_key
   
   tags = local.common_tags
 }
@@ -162,6 +172,9 @@ module "ecs" {
   
   # Fallback JWT secret (will be replaced by secrets manager)
   jwt_secret = ""
+  
+  # CORS configuration
+  cors_origin = var.cors_origin
   
   tags = local.common_tags
 }

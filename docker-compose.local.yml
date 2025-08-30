@@ -13,7 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./scripts/init-db.sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d service_tickets"]
       interval: 10s
@@ -47,53 +47,8 @@ services:
       dockerfile: ./apps/api/Dockerfile
     container_name: service-tickets-api
     restart: unless-stopped
-    environment:
-      # Database Configuration
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USERNAME: postgres
-      DB_PASSWORD: password
-      DB_NAME: service_tickets
-      
-      # JWT Configuration
-      JWT_SECRET: dev-jwt-secret-key-change-in-production-minimum-32-chars
-      JWT_EXPIRES_IN: 24h
-      # Cloudflare AI Configuration
-      CLOUDFLARE_ACCOUNT_ID: 3cce5a88886b46f56d9ff989b715a588
-      CLOUDFLARE_API_TOKEN: 3cce5a88886b46f56d9ff989b715a588
-      AI_SECRET: ZvtrfcgYd8UdUlYXfxZV-5tyWD5CHQTYETQRhP-U
-      
-      # Redis Configuration
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: redispassword
-      
-      # Application Configuration
-      NODE_ENV: development
-      PORT: 3001
-      
-      # CORS Configuration
-      CORS_ORIGIN: "http://localhost:5173,http://localhost:3000, http://localhost:5173, https://yourdomain.com"
-      
-      # Queue Configuration
-      QUEUE_REDIS_URL: redis://:redispassword@redis:6379
-      
-      # File Upload Configuration
-      UPLOAD_MAX_SIZE: 10485760
-      UPLOAD_ALLOWED_TYPES: image/jpeg,image/png,application/pdf,text/csv
-      
-      # Email Configuration (optional for development)
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 587
-      SMTP_USER: your-email@gmail.com
-      SMTP_PASS: your-app-password
-      
-      # Logging Configuration
-      LOG_LEVEL: debug
-      
-      # Development flags
-      DISABLE_AUTH: false
-      ENABLE_SWAGGER: true
+    env_file:
+      - .env.docker
     ports:
       - "3001:3001"
     volumes:
@@ -105,39 +60,25 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3001/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
     networks:
       - service-tickets-network
 
   # Web Frontend
   web:
     build:
-      context: .
-      dockerfile: ./apps/web/Dockerfile
+      context: ./apps/web
+      dockerfile: Dockerfile
     container_name: service-tickets-web
     restart: unless-stopped
-    environment:
-      # API Configuration
-      VITE_API_URL: http://localhost:3001/api/v1
-      
-      # WebSocket Configuration
-      VITE_WS_URL: http://localhost:3001
-      
-      # Development Configuration
-      VITE_NODE_ENV: development
-      VITE_DEBUG: true
+    env_file:
+      - .env.docker
     ports:
-      - "80:80"
-    volumes:
-      - ./apps/web/src:/app/src
-      - ./apps/web/public:/app/public
-      - ./apps/web/index.html:/app/index.html
-      - ./apps/web/vite.config.ts:/app/vite.config.ts
-      - ./apps/web/package.json:/app/package.json
+      - "5173:80"
     depends_on:
       - api
     networks:

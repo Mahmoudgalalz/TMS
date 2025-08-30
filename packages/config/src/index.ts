@@ -20,12 +20,22 @@ export const JWT_CONFIG = {
 };
 
 // Helper function to parse CORS origins from environment variable
-const parseCorsOrigins = (origins?: string): string | string[] => {
+const parseCorsOrigins = (origins?: string): string | ((origin: string, callback: (err: Error | null, allow?: boolean) => void) => void) => {
   if (!origins) return 'http://localhost:5173';
   
-  // If it contains comma, split into array
+  // If it contains comma, split into array and return function for dynamic origin checking
   if (origins.includes(',')) {
-    return origins.split(',').map(origin => origin.trim());
+    const allowedOrigins = origins.split(',').map(origin => origin.trim());
+    return (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'), false);
+      }
+    };
   }
   
   // Return as single string

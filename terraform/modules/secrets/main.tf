@@ -49,12 +49,14 @@ resource "aws_secretsmanager_secret" "app_config" {
 resource "aws_secretsmanager_secret_version" "app_config" {
   secret_id = aws_secretsmanager_secret.app_config.id
   secret_string = jsonencode({
-    REDIS_PASSWORD     = var.redis_password
-    SMTP_PASSWORD      = var.smtp_password
-    CLOUDFLARE_TOKEN   = var.cloudflare_token
-    ENCRYPTION_KEY     = var.encryption_key
-    WEBHOOK_SECRET     = var.webhook_secret
-    API_KEY            = var.api_key
+    REDIS_PASSWORD       = var.redis_password != "" ? var.redis_password : random_password.redis_password[0].result
+    SMTP_PASSWORD        = var.smtp_password
+    CLOUDFLARE_TOKEN     = var.cloudflare_token
+    CLOUDFLARE_ACCOUNT_ID = var.cloudflare_account_id
+    AI_SECRET           = var.ai_secret
+    ENCRYPTION_KEY      = var.encryption_key != "" ? var.encryption_key : random_password.encryption_key[0].result
+    WEBHOOK_SECRET      = var.webhook_secret
+    API_KEY             = var.api_key
   })
 }
 

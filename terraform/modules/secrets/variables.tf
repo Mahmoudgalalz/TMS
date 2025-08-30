@@ -74,3 +74,17 @@ variable "api_key" {
   default     = ""
   sensitive   = true
 }
+
+variable "cloudflare_account_id" {
+  description = "Cloudflare Account ID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "ai_secret" {
+  description = "AI service secret key"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

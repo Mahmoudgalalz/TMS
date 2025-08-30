@@ -22,8 +22,7 @@
     "db:logs": "docker-compose -f docker-compose.dev.yml logs -f",
     "db:reset": "docker-compose -f docker-compose.dev.yml down -v && docker-compose -f docker-compose.dev.yml up -d",
     "dev:api": "turbo run dev --filter=api",
-    "dev:web": "turbo run dev --filter=web",
-    "dev:ai": "turbo run dev --filter=ai-service"
+    "dev:web": "turbo run dev --filter=web"
   },
   "devDependencies": {
     "@turbo/gen": "^1.10.12",

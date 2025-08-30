@@ -27,8 +27,8 @@ async function seedUsers(db: NodePgDatabase<any>) {
       id: uuidv4(),
       username: 'john.doe',
       email: 'john.doe@company.com',
-      password: hashedPassword,
       role: 'associate' as const,
+      password: await bcrypt.hash('password123', 10),
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -36,26 +36,17 @@ async function seedUsers(db: NodePgDatabase<any>) {
       id: uuidv4(),
       username: 'jane.smith',
       email: 'jane.smith@company.com',
-      password: hashedPassword,
       role: 'manager' as const,
+      password: await bcrypt.hash('password123', 10),
       createdAt: new Date(),
       updatedAt: new Date(),
     },
     {
       id: uuidv4(),
-      username: 'bob.wilson',
-      email: 'bob.wilson@company.com',
-      password: hashedPassword,
+      username: 'mike.wilson',
+      email: 'mike.wilson@company.com',
       role: 'associate' as const,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: uuidv4(),
-      username: 'alice.brown',
-      email: 'alice.brown@company.com',
-      password: hashedPassword,
-      role: 'manager' as const,
+      password: await bcrypt.hash('password123', 10),
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -70,6 +61,13 @@ async function seedUsers(db: NodePgDatabase<any>) {
 async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
   console.log('Seeding tickets...');
   
+  // Check if tickets already exist
+  const existingTickets = await db.select().from(tickets).limit(1);
+  if (existingTickets.length > 0) {
+    console.log('Tickets already exist, skipping ticket seeding');
+    return await db.select().from(tickets);
+  }
+  
   const associates = sampleUsers.filter(u => u.role === 'associate');
   const managers = sampleUsers.filter(u => u.role === 'manager');
   
@@ -78,8 +76,8 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
       id: uuidv4(),
       title: 'Login issues with mobile application',
       description: 'Users are reporting that they cannot log into the mobile application after the recent update. The error message shows "Invalid credentials" even with correct login details.',
-      severity: 'high',
-      status: 'open',
+      severity: 'HIGH',
+      status: 'OPEN',
       createdBy: associates[0].id,
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
       createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
@@ -89,8 +87,8 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
       id: uuidv4(),
       title: 'Database performance degradation',
       description: 'Database queries are running significantly slower than usual. Response times have increased from 100ms to 5+ seconds for basic operations.',
-      severity: 'very_high' as const,
-      status: 'open' as const,
+      severity: 'VERY_HIGH' as const,
+      status: 'OPEN' as const,
       createdBy: managers[1].id,
       dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 day from now
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
@@ -101,8 +99,8 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
       ticketNumber: 'TKT-2024-0003',
       title: 'Feature request: Dark mode support',
       description: 'Multiple users have requested dark mode support for the web application to improve usability during nighttime hours.',
-      severity: 'high' as const,
-      status: 'open' as const,
+      severity: 'HIGH' as const,
+      status: 'OPEN' as const,
       createdBy: associates[0].id,
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
       createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
@@ -112,8 +110,8 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
       id: uuidv4(),
       title: 'Email notifications not working',
       description: 'Users are not receiving email notifications for password resets and account updates. SMTP configuration may need review.',
-      severity: 'medium' as const,
-      status: 'closed' as const,
+      severity: 'MEDIUM' as const,
+      status: 'CLOSED' as const,
       createdBy: managers[0].id,
       dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days from now
       createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
@@ -123,8 +121,8 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
       id: uuidv4(),
       title: 'API rate limiting causing timeouts',
       description: 'Third-party API integration is hitting rate limits during peak hours, causing timeout errors for users.',
-      severity: 'high',
-      status: 'open',
+      severity: 'HIGH',
+      status: 'OPEN',
       createdBy: associates[1].id,
       dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days from now
       createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
