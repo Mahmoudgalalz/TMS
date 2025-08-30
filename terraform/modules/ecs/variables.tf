@@ -1,0 +1,141 @@
+variable "name_prefix" {
+  description = "Name prefix for resources"
+  type        = string
+}
+
+variable "vpc_id" {
+  description = "VPC ID"
+  type        = string
+}
+
+variable "subnet_ids" {
+  description = "List of subnet IDs for ECS services"
+  type        = list(string)
+}
+
+variable "alb_target_group_api_arn" {
+  description = "ARN of the ALB target group for API"
+  type        = string
+}
+
+variable "alb_security_group_id" {
+  description = "Security group ID of the ALB"
+  type        = string
+}
+
+variable "database_endpoint" {
+  description = "Database endpoint"
+  type        = string
+}
+
+variable "redis_endpoint" {
+  description = "Redis endpoint"
+  type        = string
+}
+
+variable "api_repository_url" {
+  description = "ECR repository URL for API"
+  type        = string
+}
+
+
+# Environment variables
+variable "db_password" {
+  description = "Database password"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "db_name" {
+  description = "Database name"
+  type        = string
+  default     = "service_tickets"
+}
+
+variable "jwt_secret" {
+  description = "JWT secret"
+  type        = string
+  sensitive   = true
+}
+
+
+# Task configuration
+variable "api_cpu" {
+  description = "CPU units for API task"
+  type        = number
+  default     = 512
+}
+
+variable "api_memory" {
+  description = "Memory for API task"
+  type        = number
+  default     = 512
+}
+
+
+# Service configuration
+variable "api_desired_count" {
+  description = "Desired count for API service"
+  type        = number
+  default     = 1
+}
+
+
+# Auto-scaling configuration
+variable "api_min_capacity" {
+  description = "Minimum capacity for API service auto-scaling"
+  type        = number
+  default     = 0
+}
+
+variable "api_max_capacity" {
+  description = "Maximum capacity for API service auto-scaling"
+  type        = number
+  default     = 20
+}
+
+
+# Secrets Manager integration
+variable "secrets_access_role_arn" {
+  description = "ARN of the IAM role for accessing secrets"
+  type        = string
+  default     = ""
+}
+
+variable "db_secret_arn" {
+  description = "ARN of the database password secret"
+  type        = string
+  default     = ""
+}
+
+variable "jwt_secret_arn" {
+  description = "ARN of the JWT secret"
+  type        = string
+  default     = ""
+}
+
+variable "app_config_secret_arn" {
+  description = "ARN of the application configuration secret"
+  type        = string
+  default     = ""
+}
+
+variable "jwt_secret" {
+  description = "JWT secret for authentication (fallback if not using secrets manager)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention in days"
+  type        = number
+  default     = 7
+}
+
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
+}

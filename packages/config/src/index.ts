@@ -19,8 +19,21 @@ export const JWT_CONFIG = {
   expiresIn: process.env.JWT_EXPIRES_IN || '24h',
 };
 
+// Helper function to parse CORS origins from environment variable
+const parseCorsOrigins = (origins?: string): string | string[] => {
+  if (!origins) return 'http://localhost:5173';
+  
+  // If it contains comma, split into array
+  if (origins.includes(',')) {
+    return origins.split(',').map(origin => origin.trim());
+  }
+  
+  // Return as single string
+  return origins;
+};
+
 export const CORS_CONFIG = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: parseCorsOrigins(process.env.CORS_ORIGIN),
   credentials: true,
 };
 

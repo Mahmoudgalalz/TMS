@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { eq } from 'drizzle-orm';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { users, insertUserSchema, User, UserRole } from '../../database/schema';
 

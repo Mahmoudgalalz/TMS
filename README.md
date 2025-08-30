@@ -226,6 +226,95 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
+## ☁️ AWS Deployment
+
+This project includes a complete AWS deployment infrastructure using Terraform with auto-scaling to zero capabilities for cost optimization.
+
+### Infrastructure Components
+
+- **ECS Fargate** - Containerized applications with auto-scaling to zero
+- **Aurora Serverless v2** - PostgreSQL database with auto-pause
+- **ElastiCache Redis** - Caching layer
+- **Application Load Balancer** - Traffic distribution
+- **S3 + CloudFront** - Static frontend hosting
+- **ECR** - Container registries
+- **CodeBuild/CodePipeline** - CI/CD automation
+- **CloudWatch** - Monitoring and logging
+
+### Quick Deployment
+
+1. **Prerequisites Setup**
+   ```bash
+   # Make scripts executable
+   chmod +x scripts/*.sh
+   
+   # Run initial setup
+   ./scripts/setup.sh
+   ```
+
+2. **Configure Environment**
+   ```bash
+   # Copy and edit environment variables
+   cp .env.example .env
+   # Fill in your AWS credentials and secrets
+   ```
+
+3. **Deploy Infrastructure**
+   ```bash
+   # Initialize Terraform
+   ./scripts/deploy.sh dev init
+   
+   # Plan deployment
+   ./scripts/deploy.sh dev plan
+   
+   # Apply deployment
+   ./scripts/deploy.sh dev apply
+   ```
+
+### Auto-Scaling to Zero Features
+
+- **ECS Services**: Scale down to 0 tasks during inactivity
+- **Aurora Serverless v2**: Auto-pause after 5 minutes of inactivity (0.5 ACU minimum)
+- **Aggressive scaling policies**: Fast scale-down with 30-second deregistration delay
+- **Cost monitoring**: CloudWatch cost anomaly detection
+
+### Environment Management
+
+- **Development**: `./scripts/deploy.sh dev [action]`
+- **Production**: `./scripts/deploy.sh prod [action]`
+
+Available actions: `init`, `plan`, `apply`, `destroy`, `validate`
+
+### Infrastructure Modules
+
+```
+terraform/
+├── main.tf                 # Main configuration
+├── variables.tf            # Input variables
+├── outputs.tf              # Output values
+├── modules/
+│   ├── networking/         # VPC, subnets, security groups
+│   ├── database/           # Aurora Serverless v2
+│   ├── cache/              # ElastiCache Redis
+│   ├── ecs/                # ECS Fargate cluster
+│   ├── alb/                # Application Load Balancer
+│   ├── ecr/                # Container registries
+│   ├── s3/                 # Frontend hosting
+│   ├── codebuild/          # CI/CD pipeline
+│   └── monitoring/         # CloudWatch resources
+└── environments/
+    ├── dev/                # Development configuration
+    └── prod/               # Production configuration
+```
+
+### Cost Optimization
+
+- **Auto-scaling to zero** for all compute resources
+- **Spot instances** where applicable
+- **Lifecycle policies** for ECR and S3
+- **Cost anomaly detection** with email alerts
+- **Resource tagging** for cost allocation
+
 ## 🚨 Troubleshooting
 
 ### Common Issues
@@ -249,6 +338,18 @@ lsof -ti:3002 | xargs kill -9  # AI Service
 pnpm clean
 rm -rf node_modules
 pnpm install
+```
+
+**AWS Deployment Issues**
+```bash
+# Check AWS credentials
+aws sts get-caller-identity
+
+# Validate Terraform configuration
+./scripts/deploy.sh dev validate
+
+# View deployment logs
+aws logs describe-log-groups --log-group-name-prefix "/ecs/service-ticket-system"
 ```
 
 For more help, please open an issue on GitHub.

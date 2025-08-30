@@ -1,0 +1,31 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - echo Installing pnpm...
+      - npm install -g pnpm
+  pre_build:
+    commands:
+      - echo Installing dependencies...
+      - pnpm install --frozen-lockfile
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the React application...
+      - pnpm build --filter=web
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Uploading to S3...
+      - aws s3 sync apps/web/dist/ s3://$S3_BUCKET --delete
+      - echo Creating CloudFront invalidation...
+      - aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+      - echo Frontend deployment completed
+
+artifacts:
+  files:
+    - 'apps/web/dist/**/*'
+  base-directory: 'apps/web/dist'

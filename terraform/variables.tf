@@ -79,24 +79,49 @@ variable "jwt_secret" {
   description = "JWT secret for authentication"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
-variable "cloudflare_account_id" {
-  description = "Cloudflare account ID for AI service"
+variable "redis_password" {
+  description = "Redis password (leave empty for auto-generation)"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
-variable "cloudflare_api_token" {
-  description = "Cloudflare API token for AI service"
+variable "smtp_password" {
+  description = "SMTP password for email notifications"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
-variable "ai_secret" {
-  description = "AI service secret"
+variable "cloudflare_token" {
+  description = "Cloudflare API token"
   type        = string
   sensitive   = true
+  default     = ""
+}
+
+variable "encryption_key" {
+  description = "Application encryption key (leave empty for auto-generation)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "webhook_secret" {
+  description = "Webhook secret for external integrations"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "api_key" {
+  description = "General API key for external services"
+  type        = string
+  sensitive   = true
+  default     = ""
 }
 
 # Monitoring

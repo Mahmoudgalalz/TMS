@@ -1,0 +1,157 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: service-tickets-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: service_tickets
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d service_tickets"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - service-tickets-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: service-tickets-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass redispassword
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redispassword", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - service-tickets-network
+
+  # API Service
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    container_name: service-tickets-api
+    restart: unless-stopped
+    environment:
+      # Database Configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_NAME: service_tickets
+      
+      # JWT Configuration
+      JWT_SECRET: dev-jwt-secret-key-change-in-production-minimum-32-chars
+      JWT_EXPIRES_IN: 24h
+      # Cloudflare AI Configuration
+      CLOUDFLARE_ACCOUNT_ID: 3cce5a88886b46f56d9ff989b715a588
+      CLOUDFLARE_API_TOKEN: 3cce5a88886b46f56d9ff989b715a588
+      AI_SECRET: ZvtrfcgYd8UdUlYXfxZV-5tyWD5CHQTYETQRhP-U
+      
+      # Redis Configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redispassword
+      
+      # Application Configuration
+      NODE_ENV: development
+      PORT: 3001
+      
+      # CORS Configuration
+      CORS_ORIGIN: "http://localhost:5173,http://localhost:3000, http://localhost:5173, https://yourdomain.com"
+      
+      # Queue Configuration
+      QUEUE_REDIS_URL: redis://:redispassword@redis:6379
+      
+      # File Upload Configuration
+      UPLOAD_MAX_SIZE: 10485760
+      UPLOAD_ALLOWED_TYPES: image/jpeg,image/png,application/pdf,text/csv
+      
+      # Email Configuration (optional for development)
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: your-email@gmail.com
+      SMTP_PASS: your-app-password
+      
+      # Logging Configuration
+      LOG_LEVEL: debug
+      
+      # Development flags
+      DISABLE_AUTH: false
+      ENABLE_SWAGGER: true
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./apps/api/uploads:/app/uploads
+      - ./apps/api/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - service-tickets-network
+
+  # Web Frontend
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    container_name: service-tickets-web
+    restart: unless-stopped
+    environment:
+      # API Configuration
+      VITE_API_URL: http://localhost:3001/api/v1
+      
+      # WebSocket Configuration
+      VITE_WS_URL: http://localhost:3001
+      
+      # Development Configuration
+      VITE_NODE_ENV: development
+      VITE_DEBUG: true
+    ports:
+      - "80:80"
+    volumes:
+      - ./apps/web/src:/app/src
+      - ./apps/web/public:/app/public
+      - ./apps/web/index.html:/app/index.html
+      - ./apps/web/vite.config.ts:/app/vite.config.ts
+      - ./apps/web/package.json:/app/package.json
+    depends_on:
+      - api
+    networks:
+      - service-tickets-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  service-tickets-network:
+    driver: bridge
+    name: service-tickets-network

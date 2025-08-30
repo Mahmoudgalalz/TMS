@@ -38,6 +38,25 @@ locals {
   }
 }
 
+# Secrets Manager
+module "secrets" {
+  source = "./modules/secrets"
+  
+  name_prefix = local.name_prefix
+  
+  # Pass secrets from variables (can be empty for auto-generation)
+  db_master_password = var.db_master_password
+  jwt_secret        = var.jwt_secret
+  redis_password    = var.redis_password
+  smtp_password     = var.smtp_password
+  cloudflare_token  = var.cloudflare_token
+  encryption_key    = var.encryption_key
+  webhook_secret    = var.webhook_secret
+  api_key          = var.api_key
+  
+  tags = local.common_tags
+}
+
 # Networking
 module "networking" {
   source = "./modules/networking"
@@ -59,7 +78,7 @@ module "database" {
   security_group_ids = [module.networking.database_security_group_id]
   
   master_username = var.db_master_username
-  master_password = var.db_master_password
+  master_password = module.secrets.db_master_password_value
   database_name   = var.db_name
   
   min_capacity = var.db_min_capacity
@@ -78,7 +97,8 @@ module "cache" {
   subnet_ids     = module.networking.private_subnet_ids
   security_group_ids = [module.networking.cache_security_group_id]
   
-  node_type = var.redis_node_type
+  node_type      = var.redis_node_type
+  auth_token     = module.secrets.redis_password_value
   
   tags = local.common_tags
 }
@@ -88,7 +108,7 @@ module "ecr" {
   source = "./modules/ecr"
   
   name_prefix = local.name_prefix
-  repositories = ["api", "web", "ai-service"]
+  repositories = ["api", "web"]
   
   tags = local.common_tags
 }
@@ -132,14 +152,16 @@ module "ecs" {
   redis_endpoint    = module.cache.redis_endpoint
   
   # ECR repositories
-  api_repository_url        = module.ecr.api_repository_url
-  ai_service_repository_url = module.ecr.ai_service_repository_url
+  api_repository_url = module.ecr.api_repository_url
   
-  # Environment variables
-  jwt_secret           = var.jwt_secret
-  cloudflare_account_id = var.cloudflare_account_id
-  cloudflare_api_token = var.cloudflare_api_token
-  ai_secret           = var.ai_secret
+  # Secrets Manager integration
+  secrets_access_role_arn = module.secrets.secrets_access_role_arn
+  db_secret_arn          = module.secrets.db_master_password_secret_arn
+  jwt_secret_arn         = module.secrets.jwt_secret_arn
+  app_config_secret_arn  = module.secrets.app_config_secret_arn
+  
+  # Fallback JWT secret (will be replaced by secrets manager)
+  jwt_secret = ""
   
   tags = local.common_tags
 }
@@ -150,17 +172,20 @@ module "codebuild" {
   
   name_prefix = local.name_prefix
   
-  # ECR repositories
-  api_repository_url        = module.ecr.api_repository_url
-  web_repository_url        = module.ecr.web_repository_url
-  ai_service_repository_url = module.ecr.ai_service_repository_url
+  # Repository URLs
+  api_repository_url = module.ecr.api_repository_url
+  web_repository_url = module.ecr.web_repository_url
   
-  # ECS cluster
-  ecs_cluster_name = module.ecs.cluster_name
+  # ECS configuration
+  ecs_cluster_name  = module.ecs.cluster_name
   ecs_service_names = module.ecs.service_names
   
   # S3 frontend bucket
   frontend_bucket_name = module.s3_frontend.bucket_name
+  frontend_bucket_arn = module.s3_frontend.bucket_arn
+  build_artifacts_bucket_name = module.s3_frontend.build_artifacts_bucket_name
+  build_artifacts_bucket_arn = module.s3_frontend.build_artifacts_bucket_arn
+  cloudfront_distribution_id = module.s3_frontend.cloudfront_distribution_id
   
   tags = local.common_tags
 }

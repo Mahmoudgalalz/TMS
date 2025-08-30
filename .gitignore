@@ -89,3 +89,16 @@ jspm_packages/
 # OS
 .DS_Store
 Thumbs.db
+
+# Terraform files and state files
+terraform.tfvars
+terraform.tfstate
+terraform.tfstate.backup
+*.tfplan
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Local development environment files
+.env.local
+docker-compose.override.yml
