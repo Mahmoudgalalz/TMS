@@ -56,7 +56,7 @@ const Dashboard = () => {
           id: ticket.id,
           description: `Ticket "${ticket.title}" was ${ticket.status}`,
           userName: 'System',
-          timestamp: ticket.updatedAt.toISOString() || ticket.createdAt.toISOString()
+          timestamp: new Date(ticket.updatedAt).toISOString() || new Date(ticket.createdAt).toISOString()
         }))
 
       setStats({

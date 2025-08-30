@@ -20,13 +20,21 @@ export const JWT_CONFIG = {
 };
 
 export const CORS_CONFIG = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true,
 };
 
 export const AI_CONFIG = {
-  serviceUrl: process.env.AI_SERVICE_URL || 'http://localhost:3003',
-  fallbackEnabled: true,
+  SERVICE_URL: process.env.AI_SERVICE_URL || 'http://localhost:3003',
+  TIMEOUT: 30000,
+};
+
+export const WEBSOCKET_CONFIG = {
+  PORT: process.env.WS_PORT || 3002,
+  CORS: {
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    credentials: true,
+  },
 };
 
 export const FILE_UPLOAD_CONFIG = {
@@ -54,8 +62,8 @@ export const EMAIL_CONFIG = {
 export const APP_CONFIG = {
   port: parseInt(process.env.PORT || '3001'),
   nodeEnv: process.env.NODE_ENV || 'development',
-  apiPrefix: '/api',
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  apiPrefix: '/api/v1',
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   logLevel: process.env.LOG_LEVEL || 'info',
 };
 

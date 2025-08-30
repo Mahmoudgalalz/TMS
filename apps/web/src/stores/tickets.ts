@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { Ticket, CreateTicketDto, UpdateTicketDto } from '@service-ticket/types'
-import axios from 'axios'
+import { api } from '@/services/api'
 
 interface TicketsState {
   tickets: Ticket[]
@@ -17,6 +17,7 @@ interface TicketsState {
     page: number
     limit: number
     total: number
+    totalPages: number
   }
   
   // Actions
@@ -39,7 +40,8 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   pagination: {
     page: 1,
     limit: 10,
-    total: 0
+    total: 0,
+    totalPages: 0
   },
 
   fetchTickets: async (filters = {}) => {
@@ -48,16 +50,20 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
       const { pagination } = get()
       const params = {
         ...filters,
-        page: pagination.page,
-        limit: pagination.limit
+        page: Math.max(1, Math.floor(pagination.page || 1)),
+        limit: Math.min(100, Math.max(1, Math.floor(pagination.limit || 10)))
       }
       
-      const response = await axios.get('/api/tickets', { params })
-      const { tickets, total } = response.data
+      const response = await api.get('/tickets', { params })
+      const { data: tickets, pagination: responsePagination } = response.data
       
       set({ 
         tickets, 
-        pagination: { ...pagination, total },
+        pagination: { 
+          ...pagination, 
+          total: responsePagination.total || 0,
+          totalPages: responsePagination.totalPages || 0
+        },
         loading: false 
       })
     } catch (error: any) {
@@ -71,7 +77,7 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   fetchTicket: async (id: string) => {
     set({ loading: true, error: null })
     try {
-      const response = await axios.get(`/api/tickets/${id}`)
+      const response = await api.get(`/tickets/${id}`)
       set({ 
         currentTicket: response.data,
         loading: false 
@@ -87,7 +93,7 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   createTicket: async (data: CreateTicketDto) => {
     set({ loading: true, error: null })
     try {
-      const response = await axios.post('/api/tickets', data)
+      const response = await api.post('/tickets', data)
       const newTicket = response.data
       
       set(state => ({ 
@@ -108,7 +114,7 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   updateTicket: async (id: string, data: UpdateTicketDto) => {
     set({ loading: true, error: null })
     try {
-      const response = await axios.patch(`/api/tickets/${id}`, data)
+      const response = await api.patch(`/tickets/${id}`, data)
       const updatedTicket = response.data
       
       set(state => ({
@@ -132,7 +138,7 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   deleteTicket: async (id: string) => {
     set({ loading: true, error: null })
     try {
-      await axios.delete(`/api/tickets/${id}`)
+      await api.delete(`/tickets/${id}`)
       
       set(state => ({
         tickets: state.tickets.filter(ticket => ticket.id !== id),

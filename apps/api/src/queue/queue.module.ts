@@ -4,9 +4,11 @@ import { ConfigService } from '@nestjs/config';
 import { TicketProcessor } from './processors/ticket.processor';
 import { CsvProcessor } from './processors/csv.processor';
 import { QueueService } from './queue.service';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
+    HttpModule,
     BullModule.forRootAsync({
       useFactory: async (configService: ConfigService) => ({
         redis: {
@@ -27,6 +29,6 @@ import { QueueService } from './queue.service';
     ),
   ],
   providers: [TicketProcessor, CsvProcessor, QueueService],
-  exports: [QueueService],
+  exports: [QueueService, HttpModule],
 })
 export class QueueModule {}

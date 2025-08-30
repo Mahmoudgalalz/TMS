@@ -2,7 +2,8 @@ import { Injectable, Inject, NotFoundException, BadRequestException } from '@nes
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, desc, asc, ilike, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { tickets, ticketHistory, users, TicketStatus, TicketSeverity, UserRole } from '../../database/schema';
+import { tickets, ticketHistory, users } from '../../database/schema';
+import { TicketSeverity, TicketStatus } from '@service-ticket/types';
 import { CreateTicketDto, UpdateTicketDto, TicketFilterDto } from './dto/ticket.dto';
 
 @Injectable()
@@ -24,7 +25,7 @@ export class TicketsService {
       status: TicketStatus.OPEN,
       assignedToId: createTicketDto.assignedToId,
       createdById,
-      dueDate: createTicketDto.dueDate,
+      dueDate: createTicketDto.dueDate ? new Date(createTicketDto.dueDate).toISOString().split('T')[0] : null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -35,7 +36,7 @@ export class TicketsService {
     await this.createHistoryEntry(
       ticket.id,
       createdById,
-      'CREATED',
+      'created',
       null,
       JSON.stringify({ status: TicketStatus.OPEN, severity: ticket.severity }),
       'Ticket created'
@@ -45,7 +46,43 @@ export class TicketsService {
   }
 
   async findAll(filters: TicketFilterDto = {}) {
-    let query = this.db
+    // Build conditions array
+    const conditions = [isNull(tickets.deletedAt)];
+    
+    if (filters.status) {
+      conditions.push(eq(tickets.status, filters.status));
+    }
+    if (filters.severity) {
+      conditions.push(eq(tickets.severity, filters.severity));
+    }
+    if (filters.assignedToId) {
+      conditions.push(eq(tickets.assignedToId, filters.assignedToId));
+    }
+    if (filters.createdById) {
+      conditions.push(eq(tickets.createdById, filters.createdById));
+    }
+    if (filters.search) {
+      conditions.push(ilike(tickets.title, `%${filters.search}%`));
+    }
+
+    // Apply sorting
+    const sortField = filters.sortBy || 'createdAt';
+    const sortOrder = filters.sortOrder || 'desc';
+    
+    // Define valid sort fields to prevent dynamic access issues
+    const validSortFields = {
+      createdAt: tickets.createdAt,
+      updatedAt: tickets.updatedAt,
+      dueDate: tickets.dueDate,
+      severity: tickets.severity,
+      status: tickets.status,
+      title: tickets.title,
+    };
+    
+    const sortColumn = validSortFields[sortField as keyof typeof validSortFields] || tickets.createdAt;
+    const orderByClause = sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn);
+
+    const query = this.db
       .select({
         id: tickets.id,
         ticketNumber: tickets.ticketNumber,
@@ -56,50 +93,10 @@ export class TicketsService {
         dueDate: tickets.dueDate,
         createdAt: tickets.createdAt,
         updatedAt: tickets.updatedAt,
-        createdBy: {
-          id: users.id,
-          username: users.username,
-          email: users.email,
-        },
-        assignedTo: {
-          id: users.id,
-          username: users.username,
-          email: users.email,
-        },
       })
       .from(tickets)
-      .leftJoin(users, eq(tickets.createdById, users.id))
-      .leftJoin(users, eq(tickets.assignedToId, users.id))
-      .where(isNull(tickets.deletedAt));
-
-    // Apply filters
-    if (filters.status) {
-      query = query.where(eq(tickets.status, filters.status));
-    }
-    if (filters.severity) {
-      query = query.where(eq(tickets.severity, filters.severity));
-    }
-    if (filters.assignedToId) {
-      query = query.where(eq(tickets.assignedToId, filters.assignedToId));
-    }
-    if (filters.createdById) {
-      query = query.where(eq(tickets.createdById, filters.createdById));
-    }
-    if (filters.search) {
-      query = query.where(
-        ilike(tickets.title, `%${filters.search}%`)
-      );
-    }
-
-    // Apply sorting
-    const sortField = filters.sortBy || 'createdAt';
-    const sortOrder = filters.sortOrder || 'desc';
-    
-    if (sortOrder === 'asc') {
-      query = query.orderBy(asc(tickets[sortField]));
-    } else {
-      query = query.orderBy(desc(tickets[sortField]));
-    }
+      .where(and(...conditions))
+      .orderBy(orderByClause);
 
     // Apply pagination
     const page = filters.page || 1;
@@ -134,6 +131,8 @@ export class TicketsService {
         description: tickets.description,
         severity: tickets.severity,
         status: tickets.status,
+        assignedToId: tickets.assignedToId,
+        createdById: tickets.createdById,
         dueDate: tickets.dueDate,
         createdAt: tickets.createdAt,
         updatedAt: tickets.updatedAt,
@@ -143,16 +142,9 @@ export class TicketsService {
           email: users.email,
           role: users.role,
         },
-        assignedTo: {
-          id: users.id,
-          username: users.username,
-          email: users.email,
-          role: users.role,
-        },
       })
       .from(tickets)
       .leftJoin(users, eq(tickets.createdById, users.id))
-      .leftJoin(users, eq(tickets.assignedToId, users.id))
       .where(and(eq(tickets.id, id), isNull(tickets.deletedAt)));
 
     if (!ticket) {
@@ -166,22 +158,29 @@ export class TicketsService {
     const existingTicket = await this.findOne(id);
     
     // Validate status transitions
-    if (updateTicketDto.status && !this.isValidStatusTransition(existingTicket.status, updateTicketDto.status)) {
+    if (updateTicketDto.status && !this.isValidStatusTransition(existingTicket.status as TicketStatus, updateTicketDto.status)) {
       throw new BadRequestException(`Invalid status transition from ${existingTicket.status} to ${updateTicketDto.status}`);
     }
 
     const oldValues = {
       status: existingTicket.status,
       severity: existingTicket.severity,
-      assignedToId: existingTicket.assignedTo?.id,
+      assignedToId: existingTicket.assignedToId,
     };
 
+    const updateData = {
+      ...updateTicketDto,
+      updatedAt: new Date(),
+    };
+    
+    // Convert dueDate to string format
+    if (updateData.dueDate) {
+      (updateData as any).dueDate = new Date(updateData.dueDate).toISOString().split('T')[0];
+    }
+    
     const [updatedTicket] = await this.db
       .update(tickets)
-      .set({
-        ...updateTicketDto,
-        updatedAt: new Date(),
-      })
+      .set(updateData as any)
       .where(eq(tickets.id, id))
       .returning();
 
@@ -197,7 +196,7 @@ export class TicketsService {
       await this.createHistoryEntry(
         id,
         updatedById,
-        'UPDATED',
+        'status_changed',
         JSON.stringify(oldValues),
         JSON.stringify(newValues),
         updateTicketDto.reason || 'Ticket updated'
@@ -222,7 +221,7 @@ export class TicketsService {
     await this.createHistoryEntry(
       id,
       deletedById,
-      'DELETED',
+      'deleted',
       JSON.stringify({ status: ticket.status }),
       null,
       reason || 'Ticket deleted'
@@ -235,9 +234,9 @@ export class TicketsService {
     const history = await this.db
       .select({
         id: ticketHistory.id,
-        action: ticketHistory.action,
-        oldValues: ticketHistory.oldValues,
-        newValues: ticketHistory.newValues,
+        action: ticketHistory.actionType,
+        oldValues: ticketHistory.oldValue,
+        newValues: ticketHistory.newValue,
         reason: ticketHistory.reason,
         createdAt: ticketHistory.createdAt,
         changedBy: {
@@ -247,7 +246,7 @@ export class TicketsService {
         },
       })
       .from(ticketHistory)
-      .leftJoin(users, eq(ticketHistory.changedById, users.id))
+      .leftJoin(users, eq(ticketHistory.changedBy, users.id))
       .where(eq(ticketHistory.ticketId, ticketId))
       .orderBy(desc(ticketHistory.createdAt));
 
@@ -306,12 +305,11 @@ export class TicketsService {
     reason: string
   ) {
     await this.db.insert(ticketHistory).values({
-      id: uuidv4(),
       ticketId,
-      changedById,
-      action,
-      oldValues,
-      newValues,
+      changedBy: changedById,
+      actionType: action as any,
+      oldValue: oldValues,
+      newValue: newValues || '',
       reason,
       createdAt: new Date(),
     });

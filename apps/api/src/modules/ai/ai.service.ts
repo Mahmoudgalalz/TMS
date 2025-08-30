@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { TicketSeverity } from '../../database/schema';
+import { TicketSeverity } from '@service-ticket/types';
 
 export interface TicketAnalysisRequest {
   title: string;
@@ -228,7 +228,7 @@ Respond ONLY with a JSON object in this exact format:
       const confidence = Math.min(Math.max(parsed.confidence || 0.7, 0), 1);
       
       // Validate severity is one of our enum values
-      const validSeverities: TicketSeverity[] = ['VERY_HIGH', 'HIGH', 'MEDIUM', 'LOW', 'EASY'];
+      const validSeverities: TicketSeverity[] = Object.values(TicketSeverity);
       if (!validSeverities.includes(severity)) {
         throw new Error('Invalid severity returned by AI');
       }
@@ -287,20 +287,20 @@ Respond ONLY with a JSON object in this exact format:
     const text = `${title} ${description}`.toLowerCase();
     
     // Simple keyword-based analysis
-    let severity: TicketSeverity = 'MEDIUM';
+    let severity: TicketSeverity = TicketSeverity.MEDIUM;
     let confidence = 0.7;
     
     if (text.includes('critical') || text.includes('urgent') || text.includes('down') || text.includes('crash')) {
-      severity = 'VERY_HIGH';
+      severity = TicketSeverity.VERY_HIGH;
       confidence = 0.9;
     } else if (text.includes('high') || text.includes('important') || text.includes('error')) {
-      severity = 'HIGH';
+      severity = TicketSeverity.HIGH;
       confidence = 0.8;
     } else if (text.includes('low') || text.includes('minor') || text.includes('suggestion')) {
-      severity = 'LOW';
+      severity = TicketSeverity.LOW;
       confidence = 0.8;
     } else if (text.includes('easy') || text.includes('simple') || text.includes('quick')) {
-      severity = 'EASY';
+      severity = TicketSeverity.EASY;
       confidence = 0.8;
     }
 

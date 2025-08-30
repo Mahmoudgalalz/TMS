@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import axios from 'axios'
 import { User } from '@service-ticket/types'
+import { api } from '@/services/api'
 
 interface AuthState {
   user: User | null
@@ -25,18 +25,15 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true })
         try {
-          const response = await axios.post('/api/auth/login', { email, password })
-          const { user, token } = response.data
+          const response = await api.post('/auth/login', { email, password })
+          const { user, access_token } = response.data
           
           set({ 
             user, 
-            token, 
+            token: access_token, 
             isAuthenticated: true, 
             isLoading: false 
           })
-          
-          // Set default authorization header
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
         } catch (error) {
           set({ isLoading: false })
           throw error
@@ -49,7 +46,7 @@ export const useAuthStore = create<AuthState>()(
           token: null, 
           isAuthenticated: false 
         })
-        delete axios.defaults.headers.common['Authorization']
+        // Token will be cleared automatically by interceptor
       },
 
       refreshToken: async () => {
@@ -57,13 +54,10 @@ export const useAuthStore = create<AuthState>()(
         if (!token) return
 
         try {
-          const response = await axios.post('/api/auth/refresh', {}, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-          const { token: newToken } = response.data
+          const response = await api.post('/auth/refresh')
+          const { access_token } = response.data
           
-          set({ token: newToken })
-          axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+          set({ token: access_token })
         } catch (error) {
           get().logout()
           throw error
@@ -81,6 +75,11 @@ export const useAuthStore = create<AuthState>()(
         token: state.token, 
         isAuthenticated: state.isAuthenticated 
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.token && state?.user) {
+          state.isAuthenticated = true
+        }
+      },
     }
   )
 )

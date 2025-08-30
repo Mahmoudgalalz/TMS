@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { TicketSeverity } from '@service-ticket/types'
 import { useTicketsStore } from '../../stores/tickets'
 import { useUIStore } from '../../stores/ui'
+import { api } from '../../services/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -56,24 +57,12 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
     setLoadingAI(true)
     try {
       const title = watch('title') || ''
-      const response = await fetch('/api/ai/predict-severity', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
-        },
-        body: JSON.stringify({
-          title,
-          description: watchedDescription,
-        }),
+      const response = await api.post('/ai/predict-severity', {
+        title,
+        description: watchedDescription,
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to get AI suggestion')
-      }
-
-      const data = await response.json()
-      setAiSuggestion(data.severity)
+      setAiSuggestion(response.data.severity)
     } catch (error) {
       console.error('AI suggestion failed:', error)
       // Fallback to mock suggestion if API fails

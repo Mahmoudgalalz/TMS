@@ -11,7 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { WEBSOCKET_CONFIG } from '@service-ticket/config';
 
 @WebSocketGateway({
-  cors: WEBSOCKET_CONFIG.cors,
+  cors: WEBSOCKET_CONFIG.CORS,
 })
 export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()

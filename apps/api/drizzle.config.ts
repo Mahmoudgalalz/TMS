@@ -1,6 +1,6 @@
-import type { Config } from 'drizzle-kit';
+import { defineConfig } from 'drizzle-kit';
 
-export default {
+export default defineConfig({
   schema: './src/database/schema/*',
   out: './src/database/migrations',
   driver: 'pg',
@@ -11,4 +11,4 @@ export default {
     password: process.env.DB_PASSWORD || 'password',
     database: process.env.DB_NAME || 'service_tickets',
   },
-} satisfies Config;
+})

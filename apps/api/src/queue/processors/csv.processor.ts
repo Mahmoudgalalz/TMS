@@ -7,7 +7,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { eq, and } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../database/database.module';
-import { tickets, ticketHistory, TicketStatus } from '../../database/schema';
+import { TicketStatus } from '@service-ticket/types';
+import { tickets, ticketHistory } from '../../database/schema';
 
 @Processor('csv-processing')
 export class CsvProcessor {
@@ -92,7 +93,7 @@ export class CsvProcessor {
       }
 
       // Simulate automated processing: 30% IN_PROGRESS, 30% RESOLVED, 30% CLOSED, 10% remain OPEN
-      const statusDistribution: TicketStatus[] = ['IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+      const statusDistribution: TicketStatus[] = [TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED, TicketStatus.CLOSED];
       let processedCount = 0;
 
       for (const ticket of pendingTickets) {
@@ -100,11 +101,11 @@ export class CsvProcessor {
         let newStatus: TicketStatus;
 
         if (random < 0.3) {
-          newStatus = 'pending'; // Keep as pending
+          newStatus = TicketStatus.OPEN; // Keep as open
         } else if (random < 0.6) {
-          newStatus = 'open';
+          newStatus = TicketStatus.IN_PROGRESS;
         } else if (random < 0.9) {
-          newStatus = 'closed';
+          newStatus = TicketStatus.CLOSED;
         } else {
           continue; // 10% remain unchanged
         }

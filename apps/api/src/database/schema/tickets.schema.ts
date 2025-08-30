@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { users } from './users.schema';
+import { generateUniqueTicketId } from '../utils/unique-ticket-key';
 
 // Ticket severity enum - aligned with requirements: Very High, High, Medium, Low, Easy
 export const ticketSeverityEnum = pgEnum('ticket_severity', [
@@ -19,19 +20,21 @@ export const ticketStatusEnum = pgEnum('ticket_status', [
   'IN_PROGRESS',
   'RESOLVED',
   'CLOSED',
+  'DRAFT',
   'REOPENED'
 ]);
 
 // Tickets table schema
 export const tickets = pgTable('tickets', {
   id: uuid('id').primaryKey().defaultRandom(),
-  ticketNumber: varchar('ticket_number', { length: 20 }).notNull().unique(),
+  ticketNumber: varchar('ticket_number', { length: 20 }).notNull().unique().$default(generateUniqueTicketId),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description').notNull(),
   severity: ticketSeverityEnum('severity').notNull().default('MEDIUM'),
-  status: ticketStatusEnum('status').notNull().default('OPEN'),
-  dueDate: date('due_date'),
-  createdBy: uuid('created_by').notNull().references(() => users.id),
+  status: ticketStatusEnum('status').notNull().default('DRAFT'),
+  dueDate: varchar('due_date', { length: 30 }), // Store as string for compatibility
+  createdById: uuid('created_by_id').notNull().references(() => users.id),
+  assignedToId: uuid('assigned_to_id').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'), // Soft delete
@@ -40,7 +43,11 @@ export const tickets = pgTable('tickets', {
 // Relations
 export const ticketsRelations = relations(tickets, ({ one, many }) => ({
   creator: one(users, {
-    fields: [tickets.createdBy],
+    fields: [tickets.createdById],
+    references: [users.id],
+  }),
+  assignedTo: one(users, {
+    fields: [tickets.assignedToId],
     references: [users.id],
   }),
   history: many(ticketHistory),
@@ -86,7 +93,7 @@ export const insertTicketSchema = createInsertSchema(tickets, {
   title: z.string().min(1).max(255),
   description: z.string().min(1),
   severity: z.enum(['VERY_HIGH', 'HIGH', 'MEDIUM', 'LOW', 'EASY']),
-  status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED']),
+  status: z.enum(['DRAFT', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED']),
   dueDate: z.string().optional(),
 });
 
@@ -95,7 +102,7 @@ export const selectTicketSchema = createSelectSchema(tickets);
 export const updateTicketSchema = insertTicketSchema.partial().omit({ 
   id: true, 
   ticketNumber: true, 
-  createdBy: true 
+  createdById: true 
 });
 
 export const insertTicketHistorySchema = createInsertSchema(ticketHistory, {
@@ -106,8 +113,6 @@ export const insertTicketHistorySchema = createInsertSchema(ticketHistory, {
 
 export type Ticket = typeof tickets.$inferSelect;
 export type NewTicket = typeof tickets.$inferInsert;
-export type TicketSeverity = 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | 'EASY';
-export type TicketStatus = 'draft' | 'review' | 'pending' | 'open' | 'closed';
 
 export type TicketHistory = typeof ticketHistory.$inferSelect;
 export type NewTicketHistory = typeof ticketHistory.$inferInsert;

@@ -6,7 +6,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as csvParser from 'csv-parser';
 import { format } from '@fast-csv/format';
-import { tickets, ticketHistory, users, TicketStatus } from '../../database/schema';
+import { tickets, users, ticketHistory } from '../../database/schema';
+import { TicketStatus, TicketSeverity } from '@service-ticket/types';
 import { QueueService } from '../../queue/queue.service';
 
 export interface CsvExportOptions {
@@ -64,11 +65,9 @@ export class CsvService {
         createdAt: tickets.createdAt,
         updatedAt: tickets.updatedAt,
         createdByEmail: users.email,
-        assignedToEmail: users.email,
       })
       .from(tickets)
       .leftJoin(users, eq(tickets.createdById, users.id))
-      .leftJoin(users, eq(tickets.assignedToId, users.id))
       .where(and(...conditions));
 
     // Write CSV file
@@ -86,11 +85,10 @@ export class CsvService {
           'Description': ticket.description,
           'Severity': ticket.severity,
           'Status': ticket.status,
-          'Due Date': ticket.dueDate ? ticket.dueDate.toISOString() : '',
+          'Due Date': ticket.dueDate ? ticket.dueDate.toString() : '',
           'Created At': ticket.createdAt.toISOString(),
           'Updated At': ticket.updatedAt.toISOString(),
           'Created By': ticket.createdByEmail || '',
-          'Assigned To': ticket.assignedToEmail || '',
         });
       });
 
@@ -181,7 +179,7 @@ export class CsvService {
       return; // No change needed
     }
 
-    if (!this.isValidStatusTransition(existingTicket.status, newStatus as TicketStatus)) {
+    if (!this.isValidStatusTransition(existingTicket.status as TicketStatus, newStatus as TicketStatus)) {
       throw new Error(`Invalid status transition from ${existingTicket.status} to ${newStatus}`);
     }
 
@@ -210,10 +208,7 @@ export class CsvService {
 
   async scheduleAutomatedCsvProcessing(): Promise<void> {
     // Add job to queue for automated CSV processing
-    await this.queueService.addCsvProcessingJob({
-      type: 'automated_status_update',
-      scheduledAt: new Date(),
-    });
+    await this.queueService.scheduleDailyCsvProcessing();
   }
 
   async processAutomatedStatusUpdates(): Promise<void> {
@@ -243,7 +238,7 @@ export class CsvService {
         newStatus = TicketStatus.RESOLVED;
       }
 
-      if (newStatus && this.isValidStatusTransition(ticket.status, newStatus)) {
+      if (newStatus && this.isValidStatusTransition(ticket.status as TicketStatus, newStatus)) {
         updates.push({
           id: ticket.id,
           oldStatus: ticket.status,
@@ -297,11 +292,12 @@ export class CsvService {
 
   private isValidStatusTransition(currentStatus: TicketStatus, newStatus: TicketStatus): boolean {
     const validTransitions: Record<TicketStatus, TicketStatus[]> = {
-      'OPEN': ['IN_PROGRESS', 'CLOSED'],
-      'IN_PROGRESS': ['OPEN', 'RESOLVED', 'CLOSED'],
-      'RESOLVED': ['CLOSED', 'REOPENED'],
-      'CLOSED': ['REOPENED'],
-      'REOPENED': ['IN_PROGRESS', 'RESOLVED', 'CLOSED'],
+      [TicketStatus.DRAFT]: [TicketStatus.OPEN],
+      [TicketStatus.OPEN]: [TicketStatus.IN_PROGRESS, TicketStatus.CLOSED],
+      [TicketStatus.IN_PROGRESS]: [TicketStatus.OPEN, TicketStatus.RESOLVED, TicketStatus.CLOSED],
+      [TicketStatus.RESOLVED]: [TicketStatus.CLOSED, TicketStatus.REOPENED],
+      [TicketStatus.CLOSED]: [TicketStatus.REOPENED],
+      [TicketStatus.REOPENED]: [TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED, TicketStatus.CLOSED],
     };
 
     return validTransitions[currentStatus]?.includes(newStatus) || false;
@@ -316,14 +312,12 @@ export class CsvService {
     reason: string
   ) {
     await this.db.insert(ticketHistory).values({
-      id: uuidv4(),
       ticketId,
-      changedById,
-      action,
-      oldValues,
-      newValues,
+      changedBy: changedById,
+      actionType: action as any,
+      oldValue: oldValues,
+      newValue: newValues || '',
       reason,
-      createdAt: new Date(),
     });
   }
 }

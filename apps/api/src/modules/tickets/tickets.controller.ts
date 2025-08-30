@@ -23,7 +23,7 @@ import { TicketsService } from './tickets.service';
 import { CreateTicketDto, UpdateTicketDto, TicketFilterDto } from './dto/ticket.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import { UserRole } from '../../database/schema';
+import { UserRole } from '@service-ticket/types';
 
 @ApiTags('Tickets')
 @ApiBearerAuth()

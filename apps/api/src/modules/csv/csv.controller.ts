@@ -28,7 +28,7 @@ import * as path from 'path';
 import { CsvService, CsvExportOptions } from './csv.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import { UserRole, TicketStatus } from '../../database/schema';
+import { UserRole, TicketStatus } from '@service-ticket/types';
 
 @ApiTags('CSV Operations')
 @ApiBearerAuth()

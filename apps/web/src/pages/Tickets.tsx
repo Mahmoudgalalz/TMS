@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { PlusIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { ticketsApi } from '../services/api'
-import { TicketStatus, TicketSeverity, TicketFilterDto } from '@service-ticket/types'
+import { TicketStatus, TicketSeverity, TicketFilterDto, Ticket } from '@service-ticket/types'
 
 const Tickets = () => {
   const [query, setQuery] = useState<TicketFilterDto>({
@@ -19,8 +19,8 @@ const Tickets = () => {
     placeholderData: (previousData) => previousData
   })
 
-  const tickets = data?.data?.items || []
-  const totalPages = data?.data?.totalPages || 1
+  const tickets = (Array.isArray(data?.data) ? data.data : []) as Ticket[]
+  const totalPages = 1 // Will be fixed when backend returns proper pagination
 
   const getStatusColor = (status: TicketStatus) => {
     switch (status) {

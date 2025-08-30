@@ -76,7 +76,6 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
   const sampleTickets = [
     {
       id: uuidv4(),
-      ticketNumber: 'TKT-2024-0001',
       title: 'Login issues with mobile application',
       description: 'Users are reporting that they cannot log into the mobile application after the recent update. The error message shows "Invalid credentials" even with correct login details.',
       severity: 'high',
@@ -88,7 +87,6 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
     },
     {
       id: uuidv4(),
-      ticketNumber: 'TKT-2024-0002',
       title: 'Database performance degradation',
       description: 'Database queries are running significantly slower than usual. Response times have increased from 100ms to 5+ seconds for basic operations.',
       severity: 'very_high' as const,
@@ -112,7 +110,6 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
     },
     {
       id: uuidv4(),
-      ticketNumber: 'TKT-2024-0004',
       title: 'Email notifications not working',
       description: 'Users are not receiving email notifications for password resets and account updates. SMTP configuration may need review.',
       severity: 'medium' as const,
@@ -124,7 +121,6 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
     },
     {
       id: uuidv4(),
-      ticketNumber: 'TKT-2024-0005',
       title: 'API rate limiting causing timeouts',
       description: 'Third-party API integration is hitting rate limits during peak hours, causing timeout errors for users.',
       severity: 'high',

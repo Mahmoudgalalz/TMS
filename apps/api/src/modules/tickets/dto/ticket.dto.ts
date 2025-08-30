@@ -1,6 +1,7 @@
 import { IsString, IsOptional, IsEnum, IsUUID, IsDateString, IsInt, Min, Max } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TicketStatus, TicketSeverity } from '../../../database/schema';
+import { TicketStatus, TicketSeverity } from '@service-ticket/types';
+import { Type } from 'class-transformer';
 
 export class CreateTicketDto {
   @ApiProperty({ description: 'Ticket title', example: 'Login issue with mobile app' })
@@ -102,14 +103,16 @@ export class TicketFilterDto {
 
   @ApiPropertyOptional({ description: 'Page number', minimum: 1, default: 1 })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
-  page?: number;
+  page?: number = 1;
 
   @ApiPropertyOptional({ description: 'Items per page', minimum: 1, maximum: 100, default: 10 })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
-  limit?: number;
+  limit?: number = 10;
 }
