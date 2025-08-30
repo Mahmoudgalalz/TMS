@@ -147,7 +147,7 @@ resource "aws_ecs_task_definition" "api" {
       
       portMappings = [
         {
-          containerPort = 3000
+          containerPort = 3001
           protocol      = "tcp"
         }
       ]
@@ -159,7 +159,7 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "PORT"
-          value = "3000"
+          value = "3001"
         },
         {
           name  = "DB_HOST"
@@ -196,6 +196,22 @@ resource "aws_ecs_task_definition" "api" {
         {
           name  = "LOG_LEVEL"
           value = "info"
+        },
+        {
+          name  = "CLOUDFLARE_ACCOUNT_ID"
+          value = ""
+        },
+        {
+          name  = "CLOUDFLARE_API_TOKEN"
+          value = ""
+        },
+        {
+          name  = "AI_SECRET"
+          value = ""
+        },
+        {
+          name  = "QUEUE_REDIS_URL"
+          value = "redis://:${var.redis_auth_token}@${var.redis_endpoint}:6379"
         }
       ]
 

@@ -14,7 +14,7 @@ resource "aws_secretsmanager_secret" "db_master_password" {
 
 resource "aws_secretsmanager_secret_version" "db_master_password" {
   secret_id     = aws_secretsmanager_secret.db_master_password.id
-  secret_string = var.db_master_password
+  secret_string = var.db_master_password != "" ? var.db_master_password : random_password.db_master_password[0].result
 }
 
 # JWT Secret
@@ -31,7 +31,7 @@ resource "aws_secretsmanager_secret" "jwt_secret" {
 
 resource "aws_secretsmanager_secret_version" "jwt_secret" {
   secret_id     = aws_secretsmanager_secret.jwt_secret.id
-  secret_string = var.jwt_secret
+  secret_string = var.jwt_secret != "" ? var.jwt_secret : random_password.jwt_secret[0].result
 }
 
 # Application Configuration Secret (JSON format for multiple values)

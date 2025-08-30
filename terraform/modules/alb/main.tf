@@ -16,7 +16,7 @@ resource "aws_lb" "main" {
 # Target Group for API
 resource "aws_lb_target_group" "api" {
   name        = "${var.name_prefix}-api-tg"
-  port        = 3000
+  port        = 3001
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"
@@ -26,7 +26,7 @@ resource "aws_lb_target_group" "api" {
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200"
-    path                = "/health"
+    path                = "/api/v1/health"
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5
@@ -54,7 +54,7 @@ resource "aws_lb_target_group" "ai_service" {
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200"
-    path                = "/health"
+    path                = "/api/v1/health"
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5

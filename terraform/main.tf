@@ -160,6 +160,7 @@ module "ecs" {
   # Database and cache
   database_endpoint = module.database.cluster_endpoint
   redis_endpoint    = module.cache.redis_endpoint
+  redis_auth_token  = module.secrets.redis_password_value
   
   # ECR repositories
   api_repository_url = module.ecr.api_repository_url
@@ -173,8 +174,8 @@ module "ecs" {
   # Fallback JWT secret (will be replaced by secrets manager)
   jwt_secret = ""
   
-  # CORS configuration
-  cors_origin = var.cors_origin
+  # CORS configuration - dynamically set based on frontend domain
+  cors_origin = var.domain_name != "" ? "https://${var.domain_name}" : "https://${module.s3_frontend.cloudfront_domain_name}"
   
   tags = local.common_tags
 }

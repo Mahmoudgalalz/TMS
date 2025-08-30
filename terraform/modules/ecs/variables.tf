@@ -29,8 +29,14 @@ variable "database_endpoint" {
 }
 
 variable "redis_endpoint" {
-  description = "Redis endpoint"
+  description = "Redis cluster endpoint"
   type        = string
+}
+
+variable "redis_auth_token" {
+  description = "Redis authentication token"
+  type        = string
+  sensitive   = true
 }
 
 variable "api_repository_url" {
