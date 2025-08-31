@@ -123,18 +123,6 @@ module "ecr" {
   tags = local.common_tags
 }
 
-# Application Load Balancer
-module "alb" {
-  source = "./modules/alb"
-  
-  name_prefix = local.name_prefix
-  vpc_id      = module.networking.vpc_id
-  subnet_ids  = module.networking.public_subnet_ids
-  security_group_ids = [module.networking.alb_security_group_id]
-  
-  tags = local.common_tags
-}
-
 # S3 for Frontend
 module "s3_frontend" {
   source = "./modules/s3"
@@ -153,9 +141,9 @@ module "ecs" {
   vpc_id      = module.networking.vpc_id
   subnet_ids  = module.networking.private_subnet_ids
   
-  # Load balancer
-  alb_target_group_api_arn = module.alb.api_target_group_arn
-  alb_security_group_id    = module.networking.alb_security_group_id
+  # Load balancer - Disabled due to AWS account limitations
+  alb_target_group_api_arn = null
+  alb_security_group_id    = null
   
   # Database and cache
   database_endpoint = module.database.cluster_endpoint
@@ -175,7 +163,7 @@ module "ecs" {
   jwt_secret = ""
   
   # CORS configuration - dynamically set based on frontend domain
-  cors_origin = var.domain_name != "" ? "https://${var.domain_name}" : "https://${module.s3_frontend.cloudfront_domain_name}"
+  cors_origin = var.domain_name != "" ? "https://${var.domain_name}" : "https://${module.s3_frontend.bucket_domain_name}"
   
   tags = local.common_tags
 }
@@ -199,7 +187,7 @@ module "codebuild" {
   frontend_bucket_arn = module.s3_frontend.bucket_arn
   build_artifacts_bucket_name = module.s3_frontend.build_artifacts_bucket_name
   build_artifacts_bucket_arn = module.s3_frontend.build_artifacts_bucket_arn
-  cloudfront_distribution_id = module.s3_frontend.cloudfront_distribution_id
+  cloudfront_distribution_id = null
   
   tags = local.common_tags
 }
@@ -217,8 +205,8 @@ module "monitoring" {
   # Database
   database_cluster_identifier = module.database.cluster_identifier
   
-  # Load balancer
-  alb_arn_suffix = module.alb.alb_arn_suffix
+  # Load balancer - Disabled due to AWS account limitations
+  alb_arn_suffix = null
   
   # Notification email
   notification_email = var.notification_email

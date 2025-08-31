@@ -13,20 +13,21 @@ output "bucket_domain_name" {
   value       = aws_s3_bucket.frontend.bucket_domain_name
 }
 
-output "cloudfront_distribution_id" {
-  description = "ID of the CloudFront distribution"
-  value       = aws_cloudfront_distribution.frontend.id
-}
+# CloudFront outputs - Commented out due to AWS account limitations
+# output "cloudfront_distribution_id" {
+#   description = "ID of the CloudFront distribution"
+#   value       = aws_cloudfront_distribution.frontend.id
+# }
 
-output "cloudfront_domain_name" {
-  description = "Domain name of the CloudFront distribution"
-  value       = aws_cloudfront_distribution.frontend.domain_name
-}
+# output "cloudfront_domain_name" {
+#   description = "Domain name of the CloudFront distribution"
+#   value       = aws_cloudfront_distribution.frontend.domain_name
+# }
 
-output "cloudfront_hosted_zone_id" {
-  description = "Hosted zone ID of the CloudFront distribution"
-  value       = aws_cloudfront_distribution.frontend.hosted_zone_id
-}
+# output "cloudfront_hosted_zone_id" {
+#   description = "Hosted zone ID of the CloudFront distribution"
+#   value       = aws_cloudfront_distribution.frontend.hosted_zone_id
+# }
 
 output "build_artifacts_bucket_name" {
   description = "Name of the build artifacts S3 bucket"
@@ -40,5 +41,5 @@ output "build_artifacts_bucket_arn" {
 
 output "website_url" {
   description = "Website URL"
-  value       = var.domain_name != "" ? "https://${var.domain_name}" : "https://${aws_cloudfront_distribution.frontend.domain_name}"
+  value       = "https://${aws_s3_bucket.frontend.bucket_domain_name}"
 }

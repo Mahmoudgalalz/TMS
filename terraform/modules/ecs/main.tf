@@ -64,7 +64,6 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
 
 # Additional policy for Secrets Manager access
 resource "aws_iam_role_policy" "ecs_secrets_access" {
-  count = var.secrets_access_role_arn != "" ? 1 : 0
   name  = "${var.name_prefix}-ecs-secrets-access"
   role  = aws_iam_role.ecs_task_execution.id
 
@@ -246,10 +245,10 @@ resource "aws_ecs_task_definition" "api" {
       }
 
       healthCheck = {
-        command = ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
-        interval = 30
-        timeout = 5
-        retries = 3
+        command     = ["CMD-SHELL", "curl -f http://localhost:3001/api/v1/health || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
         startPeriod = 60
       }
     }
@@ -279,13 +278,14 @@ resource "aws_ecs_service" "api" {
     assign_public_ip = false
   }
 
-  load_balancer {
-    target_group_arn = var.alb_target_group_api_arn
-    container_name   = "api"
-    container_port   = 3000
+  dynamic "load_balancer" {
+    for_each = var.alb_target_group_api_arn != null ? [1] : []
+    content {
+      target_group_arn = var.alb_target_group_api_arn
+      container_name   = "api"
+      container_port   = 3000
+    }
   }
-
-  depends_on = [var.alb_target_group_api_arn]
 
   tags = merge(var.tags, {
     Name = "${var.name_prefix}-api-service"
@@ -298,12 +298,15 @@ resource "aws_security_group" "ecs_tasks" {
   name_prefix = "${var.name_prefix}-ecs-tasks-"
   vpc_id      = var.vpc_id
 
-  ingress {
-    description     = "HTTP from ALB"
-    from_port       = 3000
-    to_port         = 3000
-    protocol        = "tcp"
-    security_groups = [var.alb_security_group_id]
+  dynamic "ingress" {
+    for_each = var.alb_security_group_id != null ? [1] : []
+    content {
+      description     = "HTTP from ALB"
+      from_port       = 3000
+      to_port         = 3000
+      protocol        = "tcp"
+      security_groups = [var.alb_security_group_id]
+    }
   }
 
 
@@ -362,22 +365,7 @@ resource "aws_appautoscaling_policy" "api_scale_up" {
     predefined_metric_specification {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"
     }
-    target_value = 70.0
-  }
-}
-
-resource "aws_appautoscaling_policy" "api_scale_down" {
-  name               = "${var.name_prefix}-api-scale-down"
-  policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.api.resource_id
-  scalable_dimension = aws_appautoscaling_target.api.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.api.service_namespace
-
-  target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "ECSServiceAverageCPUUtilization"
-    }
-    target_value       = 30.0
+    target_value       = 70.0
     scale_in_cooldown  = 300
     scale_out_cooldown = 60
   }

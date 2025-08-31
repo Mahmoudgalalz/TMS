@@ -49,6 +49,7 @@ variable "build_artifacts_bucket_arn" {
 variable "cloudfront_distribution_id" {
   description = "CloudFront distribution ID"
   type        = string
+  default     = null
 }
 
 variable "github_connection_arn" {

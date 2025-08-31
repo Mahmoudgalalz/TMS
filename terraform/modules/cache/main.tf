@@ -10,7 +10,7 @@ resource "aws_elasticache_subnet_group" "main" {
 
 # ElastiCache Parameter Group
 resource "aws_elasticache_parameter_group" "main" {
-  family = "redis7.x"
+  family = "redis7"
   name   = "${var.name_prefix}-redis-params"
 
   parameter {
@@ -42,8 +42,8 @@ resource "aws_elasticache_replication_group" "main" {
   
   # Security
   at_rest_encryption_enabled  = true
-  transit_encryption_enabled  = true
-  auth_token                  = var.auth_token
+  transit_encryption_enabled  = false
+  # auth_token only works with transit encryption enabled
   
   # Backup configuration
   snapshot_retention_limit    = var.snapshot_retention_limit

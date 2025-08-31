@@ -16,11 +16,13 @@ variable "subnet_ids" {
 variable "alb_target_group_api_arn" {
   description = "ARN of the ALB target group for API"
   type        = string
+  default     = null
 }
 
 variable "alb_security_group_id" {
   description = "Security group ID of the ALB"
   type        = string
+  default     = null
 }
 
 variable "database_endpoint" {
@@ -70,7 +72,7 @@ variable "jwt_secret" {
 variable "api_cpu" {
   description = "CPU units for API task"
   type        = number
-  default     = 512
+  default     = 256
 }
 
 variable "api_memory" {

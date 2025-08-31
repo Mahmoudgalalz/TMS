@@ -1,13 +1,14 @@
 # Load Balancer
-output "alb_dns_name" {
-  description = "DNS name of the Application Load Balancer"
-  value       = module.alb.alb_dns_name
-}
+# ALB outputs - Commented out due to AWS account limitations
+# output "alb_dns_name" {
+#   description = "DNS name of the load balancer"
+#   value       = module.alb.alb_dns_name
+# }
 
-output "alb_zone_id" {
-  description = "Zone ID of the Application Load Balancer"
-  value       = module.alb.alb_zone_id
-}
+# output "alb_zone_id" {
+#   description = "Zone ID of the load balancer"
+#   value       = module.alb.alb_zone_id
+# }
 
 # Database
 output "database_endpoint" {
@@ -33,9 +34,8 @@ output "redis_endpoint" {
 output "ecr_repositories" {
   description = "ECR repository URLs"
   value = {
-    api        = module.ecr.api_repository_url
-    web        = module.ecr.web_repository_url
-    ai_service = module.ecr.ai_service_repository_url
+    api = module.ecr.api_repository_url
+    web = module.ecr.web_repository_url
   }
 }
 
@@ -45,10 +45,11 @@ output "frontend_bucket_name" {
   value       = module.s3_frontend.bucket_name
 }
 
-output "frontend_cloudfront_domain" {
-  description = "CloudFront distribution domain for frontend"
-  value       = module.s3_frontend.cloudfront_domain_name
-}
+# Frontend - CloudFront outputs commented out due to AWS account limitations
+# output "frontend_cloudfront_domain" {
+#   description = "CloudFront distribution domain name"
+#   value       = module.s3_frontend.cloudfront_domain_name
+# }
 
 # ECS
 output "ecs_cluster_name" {

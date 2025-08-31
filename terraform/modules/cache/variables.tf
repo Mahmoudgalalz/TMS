@@ -33,7 +33,7 @@ variable "num_cache_nodes" {
 variable "auth_token" {
   description = "Auth token for Redis"
   type        = string
-  default     = null
+  default     = ""
   sensitive   = true
 }
 

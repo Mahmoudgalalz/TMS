@@ -8,10 +8,11 @@ output "dashboard_url" {
   value       = "https://${data.aws_region.current.name}.console.aws.amazon.com/cloudwatch/home?region=${data.aws_region.current.name}#dashboards:name=${aws_cloudwatch_dashboard.main.dashboard_name}"
 }
 
-output "cost_anomaly_detector_arn" {
-  description = "Cost anomaly detector ARN"
-  value       = aws_ce_anomaly_detector.cost.arn
-}
+# Cost anomaly detector output commented out - resource not supported in all regions
+# output "cost_anomaly_detector_arn" {
+#   description = "Cost anomaly detector ARN"
+#   value       = aws_ce_anomaly_detector.cost.arn
+# }
 
 output "log_insights_queries" {
   description = "CloudWatch Log Insights query names"

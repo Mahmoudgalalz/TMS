@@ -1,18 +1,16 @@
 output "project_names" {
   description = "CodeBuild project names"
   value = {
-    api        = aws_codebuild_project.api.name
-    ai_service = aws_codebuild_project.ai_service.name
-    frontend   = aws_codebuild_project.frontend.name
+    api      = aws_codebuild_project.api.name
+    frontend = aws_codebuild_project.frontend.name
   }
 }
 
 output "project_arns" {
   description = "CodeBuild project ARNs"
   value = {
-    api        = aws_codebuild_project.api.arn
-    ai_service = aws_codebuild_project.ai_service.arn
-    frontend   = aws_codebuild_project.frontend.arn
+    api      = aws_codebuild_project.api.arn
+    frontend = aws_codebuild_project.frontend.arn
   }
 }
 

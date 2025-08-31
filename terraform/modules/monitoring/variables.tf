@@ -11,8 +11,7 @@ variable "ecs_cluster_name" {
 variable "ecs_service_names" {
   description = "ECS service names"
   type = object({
-    api        = string
-    ai_service = string
+    api = string
   })
 }
 
@@ -24,6 +23,7 @@ variable "database_cluster_identifier" {
 variable "alb_arn_suffix" {
   description = "ALB ARN suffix"
   type        = string
+  default     = null
 }
 
 variable "notification_email" {

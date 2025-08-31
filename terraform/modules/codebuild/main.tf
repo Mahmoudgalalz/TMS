@@ -182,9 +182,12 @@ resource "aws_codebuild_project" "frontend" {
       value = var.frontend_bucket_name
     }
 
-    environment_variable {
-      name  = "CLOUDFRONT_DISTRIBUTION_ID"
-      value = var.cloudfront_distribution_id
+    dynamic "environment_variable" {
+      for_each = var.cloudfront_distribution_id != null ? [1] : []
+      content {
+        name  = "CLOUDFRONT_DISTRIBUTION_ID"
+        value = var.cloudfront_distribution_id
+      }
     }
   }
 
@@ -255,9 +258,9 @@ resource "aws_iam_role_policy" "codepipeline" {
       {
         Effect = "Allow"
         Action = [
-          "codestar-connections:UseConnection"
+          "ecs:UpdateService"
         ]
-        Resource = var.github_connection_arn != "" ? [var.github_connection_arn] : []
+        Resource = "*"
       }
     ]
   })

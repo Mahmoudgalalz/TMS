@@ -58,11 +58,11 @@ variable "db_min_capacity" {
 variable "db_max_capacity" {
   description = "Maximum Aurora capacity units"
   type        = number
-  default     = 16
+  default     = 15
 }
 
 variable "db_auto_pause" {
-  description = "Enable auto-pause for Aurora Serverless"
+  description = "Enable auto-pause for Aurora Serverless (requires PostgreSQL 13.15+ or 14.12+ or 15.7+ or 16.3+)"
   type        = bool
   default     = true
 }

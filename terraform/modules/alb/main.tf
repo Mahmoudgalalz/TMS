@@ -41,33 +41,33 @@ resource "aws_lb_target_group" "api" {
   })
 }
 
-# Target Group for AI Service
-resource "aws_lb_target_group" "ai_service" {
-  name        = "${var.name_prefix}-ai-service-tg"
-  port        = 3001
-  protocol    = "HTTP"
-  vpc_id      = var.vpc_id
-  target_type = "ip"
-
-  health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    interval            = 30
-    matcher             = "200"
-    path                = "/api/v1/health"
-    port                = "traffic-port"
-    protocol            = "HTTP"
-    timeout             = 5
-    unhealthy_threshold = 2
-  }
-
-  # Deregistration delay for faster scale-down
-  deregistration_delay = 30
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-ai-service-target-group"
-  })
-}
+# Target Group for AI Service - commented out as AI service is not deployed
+# resource "aws_lb_target_group" "ai_service" {
+#   name        = "${var.name_prefix}-ai-service-tg"
+#   port        = 3001
+#   protocol    = "HTTP"
+#   vpc_id      = var.vpc_id
+#   target_type = "ip"
+#
+#   health_check {
+#     enabled             = true
+#     healthy_threshold   = 2
+#     interval            = 30
+#     matcher             = "200"
+#     path                = "/api/v1/health"
+#     port                = "traffic-port"
+#     protocol            = "HTTP"
+#     timeout             = 5
+#     unhealthy_threshold = 2
+#   }
+#
+#   # Deregistration delay for faster scale-down
+#   deregistration_delay = 30
+#
+#   tags = merge(var.tags, {
+#     Name = "${var.name_prefix}-ai-service-target-group"
+#   })
+# }
 
 # HTTP Listener (redirect to HTTPS)
 resource "aws_lb_listener" "http" {
@@ -174,51 +174,51 @@ resource "aws_lb_listener_rule" "api_dev" {
   })
 }
 
-# Listener Rules for AI Service
-resource "aws_lb_listener_rule" "ai_service" {
-  count = var.certificate_arn != "" ? 1 : 0
-  
-  listener_arn = aws_lb_listener.https[0].arn
-  priority     = 200
+# Listener Rules for AI Service (HTTPS) - commented out as AI service not deployed
+# resource "aws_lb_listener_rule" "ai_service" {
+#   count = var.certificate_arn != "" ? 1 : 0
+#   
+#   listener_arn = aws_lb_listener.https[0].arn
+#   priority     = 200
+#
+#   action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.ai_service.arn
+#   }
+#
+#   condition {
+#     path_pattern {
+#       values = ["/ai/*"]
+#     }
+#   }
+#
+#   tags = merge(var.tags, {
+#     Name = "${var.name_prefix}-ai-service-listener-rule"
+#   })
+# }
 
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.ai_service.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/ai/*"]
-    }
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-ai-service-listener-rule"
-  })
-}
-
-# Listener Rules for AI Service (HTTP dev)
-resource "aws_lb_listener_rule" "ai_service_dev" {
-  count = var.certificate_arn == "" ? 1 : 0
-  
-  listener_arn = aws_lb_listener.http_dev[0].arn
-  priority     = 200
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.ai_service.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/ai/*"]
-    }
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-ai-service-dev-listener-rule"
-  })
-}
+# Listener Rules for AI Service (HTTP dev) - commented out as AI service not deployed
+# resource "aws_lb_listener_rule" "ai_service_dev" {
+#   count = var.certificate_arn == "" ? 1 : 0
+#   
+#   listener_arn = aws_lb_listener.http_dev[0].arn
+#   priority     = 200
+#
+#   action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.ai_service.arn
+#   }
+#
+#   condition {
+#     path_pattern {
+#       values = ["/ai/*"]
+#     }
+#   }
+#
+#   tags = merge(var.tags, {
+#     Name = "${var.name_prefix}-ai-service-dev-listener-rule"
+#   })
+# }
 
 # CloudWatch Alarms for ALB
 resource "aws_cloudwatch_metric_alarm" "alb_target_response_time" {

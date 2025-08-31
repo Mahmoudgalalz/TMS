@@ -23,10 +23,11 @@ output "api_target_group_arn" {
   value       = aws_lb_target_group.api.arn
 }
 
-output "ai_service_target_group_arn" {
-  description = "ARN of the AI service target group"
-  value       = aws_lb_target_group.ai_service.arn
-}
+# AI service target group output commented out - resource not deployed
+# output "ai_service_target_group_arn" {
+#   description = "ARN of the AI service target group"
+#   value       = aws_lb_target_group.ai_service.arn
+# }
 
 output "https_listener_arn" {
   description = "ARN of the HTTPS listener"

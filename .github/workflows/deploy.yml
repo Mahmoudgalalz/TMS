@@ -1,0 +1,117 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_API_REPOSITORY: 891819783983.dkr.ecr.us-east-1.amazonaws.com/service-ticket-system-dev-api
+  ECR_WEB_REPOSITORY: 891819783983.dkr.ecr.us-east-1.amazonaws.com/service-ticket-system-dev-web
+  ECS_CLUSTER: service-ticket-system-dev-cluster
+  ECS_SERVICE: service-ticket-system-dev-api
+  S3_BUCKET: service-ticket-system-dev-frontend-rf0jp0vo
+
+jobs:
+  build-and-deploy-api:
+    name: Build and Deploy API
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build API Docker image
+      run: |
+        docker build -t $ECR_API_REPOSITORY:latest -f apps/api/Dockerfile .
+        docker build -t $ECR_API_REPOSITORY:${{ github.sha }} -f apps/api/Dockerfile .
+
+    - name: Push API image to ECR
+      run: |
+        docker push $ECR_API_REPOSITORY:latest
+        docker push $ECR_API_REPOSITORY:${{ github.sha }}
+
+    - name: Update ECS service
+      run: |
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment
+
+  build-and-deploy-frontend:
+    name: Build and Deploy Frontend
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8.6.10
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Build frontend
+      run: |
+        cd apps/web
+        pnpm build
+      env:
+        VITE_API_URL: https://service-ticket-system-dev-frontend-rf0jp0vo.s3.amazonaws.com
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy to S3
+      run: |
+        aws s3 sync apps/web/dist/ s3://$S3_BUCKET --delete
+        aws s3 cp apps/web/dist/index.html s3://$S3_BUCKET/index.html --cache-control "no-cache"
+
+  build-web-docker:
+    name: Build Web Docker Image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and push web Docker image
+      run: |
+        docker build -t $ECR_WEB_REPOSITORY:latest -f apps/web/Dockerfile .
+        docker build -t $ECR_WEB_REPOSITORY:${{ github.sha }} -f apps/web/Dockerfile .
+        docker push $ECR_WEB_REPOSITORY:latest
+        docker push $ECR_WEB_REPOSITORY:${{ github.sha }}

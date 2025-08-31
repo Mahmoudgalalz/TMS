@@ -10,7 +10,7 @@ resource "aws_db_subnet_group" "main" {
 
 # DB Parameter Group
 resource "aws_rds_cluster_parameter_group" "main" {
-  family = "aurora-postgresql15"
+  family = "aurora-postgresql13"
   name   = "${var.name_prefix}-cluster-pg"
 
   parameter {
@@ -38,15 +38,16 @@ resource "aws_rds_cluster" "main" {
   cluster_identifier      = "${var.name_prefix}-aurora-cluster"
   engine                 = "aurora-postgresql"
   engine_mode            = "provisioned"
-  engine_version         = "15.4"
+  engine_version         = "13.15"
   database_name          = var.database_name
   master_username        = var.master_username
   master_password        = var.master_password
   
   # Serverless v2 scaling configuration
+  # Note: Auto-pause is enabled when min_capacity = 0 (requires PostgreSQL 13.15+ or 14.12+ or 15.7+ or 16.3+)
   serverlessv2_scaling_configuration {
     max_capacity = var.max_capacity
-    min_capacity = var.min_capacity
+    min_capacity = var.auto_pause ? 0 : var.min_capacity
   }
 
   # Network configuration
@@ -61,8 +62,8 @@ resource "aws_rds_cluster" "main" {
   preferred_backup_window = "03:00-04:00"
   preferred_maintenance_window = "sun:04:00-sun:05:00"
   
-  # Auto-pause configuration (only works with Aurora Serverless v1, but we'll use scaling to 0.5 ACU)
-  # For true auto-pause, we rely on the min_capacity of 0.5 ACU which is very cost-effective
+  # Note: Auto-pause is not supported in newer PostgreSQL versions
+  # Using min_capacity of 0 ACU for cost optimization
   
   # Security
   storage_encrypted = true
@@ -155,29 +156,5 @@ resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }
 
-# Auto-scaling target for Aurora Serverless v2 (for future use)
-resource "aws_appautoscaling_target" "aurora" {
-  max_capacity       = var.max_capacity
-  min_capacity       = var.min_capacity
-  resource_id        = "cluster:${aws_rds_cluster.main.cluster_identifier}"
-  scalable_dimension = "rds:cluster:ReadReplicaCount"
-  service_namespace  = "rds"
-}
-
-# Auto-scaling policy for scale down
-resource "aws_appautoscaling_policy" "aurora_scale_down" {
-  name               = "${var.name_prefix}-aurora-scale-down"
-  policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.aurora.resource_id
-  scalable_dimension = aws_appautoscaling_target.aurora.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.aurora.service_namespace
-
-  target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "RDSReaderAverageCPUUtilization"
-    }
-    target_value       = 50.0
-    scale_in_cooldown  = 300
-    scale_out_cooldown = 300
-  }
-}
+# Note: Aurora Serverless v2 handles scaling automatically via serverlessv2_scaling_configuration
+# No additional auto-scaling resources needed

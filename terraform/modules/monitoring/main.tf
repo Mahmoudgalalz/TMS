@@ -32,8 +32,6 @@ resource "aws_cloudwatch_dashboard" "main" {
         properties = {
           metrics = [
             ["AWS/ECS", "CPUUtilization", "ServiceName", var.ecs_service_names.api, "ClusterName", var.ecs_cluster_name],
-            [".", "MemoryUtilization", ".", ".", ".", "."],
-            ["AWS/ECS", "CPUUtilization", "ServiceName", var.ecs_service_names.ai_service, "ClusterName", var.ecs_cluster_name],
             [".", "MemoryUtilization", ".", ".", ".", "."]
           ]
           view    = "timeSeries"
@@ -43,28 +41,29 @@ resource "aws_cloudwatch_dashboard" "main" {
           period  = 300
         }
       },
-      {
-        type   = "metric"
-        x      = 12
-        y      = 0
-        width  = 12
-        height = 6
-
-        properties = {
-          metrics = [
-            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", var.alb_arn_suffix],
-            [".", "TargetResponseTime", ".", "."],
-            [".", "HTTPCode_Target_2XX_Count", ".", "."],
-            [".", "HTTPCode_Target_4XX_Count", ".", "."],
-            [".", "HTTPCode_Target_5XX_Count", ".", "."]
-          ]
-          view    = "timeSeries"
-          stacked = false
-          region  = data.aws_region.current.name
-          title   = "Load Balancer Metrics"
-          period  = 300
-        }
-      },
+      # ALB Metrics - Commented out due to AWS account limitations
+      # {
+      #   type   = "metric"
+      #   x      = 12
+      #   y      = 0
+      #   width  = 12
+      #   height = 6
+      #
+      #   properties = {
+      #     metrics = [
+      #       ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", var.alb_arn_suffix],
+      #       [".", "TargetResponseTime", ".", "."],
+      #       [".", "HTTPCode_Target_2XX_Count", ".", "."],
+      #       [".", "HTTPCode_Target_4XX_Count", ".", "."],
+      #       [".", "HTTPCode_Target_5XX_Count", ".", "."]
+      #     ]
+      #     view    = "timeSeries"
+      #     stacked = false
+      #     region  = "us-east-1"
+      #     title   = "ALB Metrics"
+      #     period  = 300
+      #   }
+      # },
       {
         type   = "metric"
         x      = 0
@@ -203,91 +202,114 @@ resource "aws_cloudwatch_metric_alarm" "database_connections_high" {
 }
 
 # CloudWatch Alarms for Load Balancer
-resource "aws_cloudwatch_metric_alarm" "alb_response_time_high" {
-  alarm_name          = "${var.name_prefix}-alb-response-time-high"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "2"
-  metric_name         = "TargetResponseTime"
-  namespace           = "AWS/ApplicationELB"
-  period              = "300"
-  statistic           = "Average"
-  threshold           = "2"
-  alarm_description   = "This metric monitors ALB response time"
-  alarm_actions       = [aws_sns_topic.alerts.arn]
+# ALB Response Time Alarm - Commented out due to AWS account limitations
+# resource "aws_cloudwatch_metric_alarm" "alb_response_time_high" {
+#   alarm_name          = "${var.name_prefix}-alb-response-time-high"
+#   comparison_operator = "GreaterThanThreshold"
+#   evaluation_periods  = "2"
+#   metric_name         = "TargetResponseTime"
+#   namespace           = "AWS/ApplicationELB"
+#   period              = "300"
+#   statistic           = "Average"
+#   threshold           = "2"
+#   alarm_description   = "This metric monitors ALB response time"
+#   alarm_actions       = [aws_sns_topic.alerts.arn]
+#
+#   dimensions = {
+#     LoadBalancer = var.alb_arn_suffix
+#   }
+#
+#   tags = merge(var.tags, {
+#     Name = "${var.name_prefix}-alb-response-time-alarm"
+#   })
+# }
 
-  dimensions = {
-    LoadBalancer = var.alb_arn_suffix
-  }
+# ALB Response Time Alarm - Commented out due to AWS account limitations
+# resource "aws_cloudwatch_metric_alarm" "alb_response_time_high" {
+#   alarm_name          = "${var.name_prefix}-alb-response-time-high"
+#   comparison_operator = "GreaterThanThreshold"
+#   evaluation_periods  = "2"
+#   metric_name         = "TargetResponseTime"
+#   namespace           = "AWS/ApplicationELB"
+#   period              = "300"
+#   statistic           = "Average"
+#   threshold           = "2"
+#   alarm_description   = "This metric monitors ALB response time"
+#   alarm_actions       = [aws_sns_topic.alerts.arn]
+#
+#   dimensions = {
+#     LoadBalancer = var.alb_arn_suffix
+#   }
+#
+#   tags = merge(var.tags, {
+#     Name = "${var.name_prefix}-alb-response-time-alarm"
+#   })
+# }
 
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-alb-response-time-alarm"
-  })
-}
+# ALB 5xx Errors Alarm - Commented out due to AWS account limitations
+# resource "aws_cloudwatch_metric_alarm" "alb_5xx_errors" {
+#   alarm_name          = "${var.name_prefix}-alb-5xx-errors"
+#   comparison_operator = "GreaterThanThreshold"
+#   evaluation_periods  = "2"
+#   metric_name         = "HTTPCode_Target_5XX_Count"
+#   namespace           = "AWS/ApplicationELB"
+#   period              = "300"
+#   statistic           = "Sum"
+#   threshold           = "10"
+#   alarm_description   = "This metric monitors ALB 5xx errors"
+#   alarm_actions       = [aws_sns_topic.alerts.arn]
+#
+#   dimensions = {
+#     LoadBalancer = var.alb_arn_suffix
+#   }
+#
+#   tags = merge(var.tags, {
+#     Name = "${var.name_prefix}-alb-5xx-errors-alarm"
+#   })
+# }
 
-resource "aws_cloudwatch_metric_alarm" "alb_5xx_errors" {
-  alarm_name          = "${var.name_prefix}-alb-5xx-errors"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "2"
-  metric_name         = "HTTPCode_Target_5XX_Count"
-  namespace           = "AWS/ApplicationELB"
-  period              = "300"
-  statistic           = "Sum"
-  threshold           = "10"
-  alarm_description   = "This metric monitors ALB 5XX errors"
-  alarm_actions       = [aws_sns_topic.alerts.arn]
+# Cost Anomaly Detection - Commented out due to unsupported resource
+# resource "aws_ce_anomaly_detector" "cost" {
+#   name         = "${var.name_prefix}-cost-anomaly-detector"
+#   monitor_type = "DIMENSIONAL"
+#   specification = jsonencode({
+#     Dimension = "SERVICE"
+#     MatchOptions = ["EQUALS"]
+#     Values = ["Amazon Elastic Container Service", "Amazon Relational Database Service", "Amazon ElastiCache"]
+#   })
+#
+#   tags = merge(var.tags, {
+#     Name = "${var.name_prefix}-cost-anomaly-detector"
+#   })
+# }
 
-  dimensions = {
-    LoadBalancer = var.alb_arn_suffix
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-alb-5xx-errors-alarm"
-  })
-}
-
-# Cost Anomaly Detection
-resource "aws_ce_anomaly_detector" "cost" {
-  name         = "${var.name_prefix}-cost-anomaly-detector"
-  monitor_type = "DIMENSIONAL"
-
-  specification = jsonencode({
-    Dimension = "SERVICE"
-    MatchOptions = ["EQUALS"]
-    Values = ["Amazon Elastic Container Service", "Amazon Relational Database Service", "Amazon ElastiCache"]
-  })
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-cost-anomaly-detector"
-  })
-}
-
-resource "aws_ce_anomaly_subscription" "cost" {
-  name      = "${var.name_prefix}-cost-anomaly-subscription"
-  frequency = "DAILY"
-  
-  monitor_arn_list = [
-    aws_ce_anomaly_detector.cost.arn
-  ]
-  
-  subscriber {
-    type    = "EMAIL"
-    address = var.notification_email
-  }
-
-  threshold_expression {
-    and {
-      dimension {
-        key           = "ANOMALY_TOTAL_IMPACT_ABSOLUTE"
-        values        = ["100"]
-        match_options = ["GREATER_THAN_OR_EQUAL"]
-      }
-    }
-  }
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-cost-anomaly-subscription"
-  })
-}
+# resource "aws_ce_anomaly_subscription" "cost" {
+#   name      = "${var.name_prefix}-cost-anomaly-subscription"
+#   frequency = "DAILY"
+#   
+#   monitor_arn_list = [
+#     aws_ce_anomaly_detector.cost.arn
+#   ]
+#   
+#   subscriber {
+#     type    = "EMAIL"
+#     address = var.notification_email
+#   }
+#
+#   threshold_expression {
+#     and {
+#       dimension {
+#         key           = "ANOMALY_TOTAL_IMPACT_ABSOLUTE"
+#         values        = ["100"]
+#         match_options = ["GREATER_THAN_OR_EQUAL"]
+#       }
+#     }
+#   }
+#
+#   tags = merge(var.tags, {
+#     Name = "${var.name_prefix}-cost-anomaly-subscription"
+#   })
+# }
 
 # CloudWatch Log Insights Queries
 resource "aws_cloudwatch_query_definition" "error_logs" {
