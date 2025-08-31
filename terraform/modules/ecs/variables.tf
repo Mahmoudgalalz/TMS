@@ -46,6 +46,11 @@ variable "api_repository_url" {
   type        = string
 }
 
+variable "web_repository_url" {
+  description = "ECR repository URL for frontend web app"
+  type        = string
+}
+
 
 # Environment variables
 variable "db_password" {
@@ -70,15 +75,15 @@ variable "jwt_secret" {
 
 # Task configuration
 variable "api_cpu" {
-  description = "CPU units for API task"
+  description = "CPU units for API task (1024 = 1 vCPU)"
   type        = number
-  default     = 256
+  default     = 2048
 }
 
 variable "api_memory" {
-  description = "Memory for API task"
+  description = "Memory (MB) for API task"
   type        = number
-  default     = 512
+  default     = 4096
 }
 
 

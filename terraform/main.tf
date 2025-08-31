@@ -123,16 +123,6 @@ module "ecr" {
   tags = local.common_tags
 }
 
-# S3 for Frontend
-module "s3_frontend" {
-  source = "./modules/s3"
-  
-  name_prefix = local.name_prefix
-  domain_name = var.domain_name
-  
-  tags = local.common_tags
-}
-
 # ECS Cluster and Services
 module "ecs" {
   source = "./modules/ecs"
@@ -150,8 +140,9 @@ module "ecs" {
   redis_endpoint    = module.cache.redis_endpoint
   redis_auth_token  = module.secrets.redis_password_value
   
-  # ECR repositories
+  # Repository URLs
   api_repository_url = module.ecr.api_repository_url
+  web_repository_url = module.ecr.web_repository_url
   
   # Secrets Manager integration
   secrets_access_role_arn = module.secrets.secrets_access_role_arn
@@ -162,34 +153,25 @@ module "ecs" {
   # Fallback JWT secret (will be replaced by secrets manager)
   jwt_secret = ""
   
-  # CORS configuration - dynamically set based on frontend domain
-  cors_origin = var.domain_name != "" ? "https://${var.domain_name}" : "https://${module.s3_frontend.bucket_domain_name}"
+  # CORS configuration - allow all origins for Fargate frontend
+  cors_origin = "*"
   
   tags = local.common_tags
 }
 
-# CI/CD Pipeline
-module "codebuild" {
-  source = "./modules/codebuild"
-  
-  name_prefix = local.name_prefix
-  
-  # Repository URLs
-  api_repository_url = module.ecr.api_repository_url
-  web_repository_url = module.ecr.web_repository_url
-  
-  # ECS configuration
-  ecs_cluster_name  = module.ecs.cluster_name
-  ecs_service_names = module.ecs.service_names
-  
-  # S3 frontend bucket
-  frontend_bucket_name = module.s3_frontend.bucket_name
-  frontend_bucket_arn = module.s3_frontend.bucket_arn
-  build_artifacts_bucket_name = module.s3_frontend.build_artifacts_bucket_name
-  build_artifacts_bucket_arn = module.s3_frontend.build_artifacts_bucket_arn
-  cloudfront_distribution_id = null
-  
-  tags = local.common_tags
+# Build artifacts S3 bucket for CI/CD
+resource "aws_s3_bucket" "build_artifacts" {
+  bucket = "${local.name_prefix}-build-artifacts-${random_string.artifacts_suffix.result}"
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-build-artifacts-bucket"
+  })
+}
+
+resource "random_string" "artifacts_suffix" {
+  length  = 8
+  special = false
+  upper   = false
 }
 
 # Monitoring

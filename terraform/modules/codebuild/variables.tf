@@ -26,15 +26,7 @@ variable "ecs_service_names" {
   })
 }
 
-variable "frontend_bucket_name" {
-  description = "S3 bucket name for frontend"
-  type        = string
-}
-
-variable "frontend_bucket_arn" {
-  description = "S3 bucket ARN for frontend"
-  type        = string
-}
+# Frontend bucket variables removed - using ECS Fargate for frontend
 
 variable "build_artifacts_bucket_name" {
   description = "S3 bucket name for build artifacts"

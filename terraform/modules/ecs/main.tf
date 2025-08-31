@@ -372,5 +372,83 @@ resource "aws_appautoscaling_policy" "api_scale_up" {
 }
 
 
+# Frontend Task Definition
+resource "aws_ecs_task_definition" "frontend" {
+  family                   = "${var.name_prefix}-frontend"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "2048"
+  memory                   = "4096"
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn           = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name  = "frontend"
+      image = "${var.web_repository_url}:latest"
+      
+      portMappings = [
+        {
+          containerPort = 80
+          protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        {
+          name  = "VITE_API_URL"
+          value = "http://${aws_ecs_service.api.name}.${var.name_prefix}-cluster.local:3001"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.frontend.name
+          awslogs-region        = data.aws_region.current.name
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 60
+      }
+
+      essential = true
+    }
+  ])
+
+  depends_on = [aws_iam_role_policy_attachment.ecs_task_execution]
+}
+
+# Frontend Service
+resource "aws_ecs_service" "frontend" {
+  name            = "${var.name_prefix}-frontend"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.frontend.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = var.subnet_ids
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
+  }
+
+  depends_on = [aws_ecs_task_definition.frontend]
+}
+
+# CloudWatch Log Group for Frontend
+resource "aws_cloudwatch_log_group" "frontend" {
+  name              = "/ecs/${var.name_prefix}/frontend"
+  retention_in_days = 7
+
+  tags = var.tags
+}
+
 # Data source for current AWS region
 data "aws_region" "current" {}

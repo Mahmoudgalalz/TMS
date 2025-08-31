@@ -16,14 +16,16 @@ output "cluster_arn" {
 output "service_names" {
   description = "ECS service names"
   value = {
-    api = aws_ecs_service.api.name
+    api      = aws_ecs_service.api.name
+    frontend = aws_ecs_service.frontend.name
   }
 }
 
 output "task_definition_arns" {
   description = "ECS task definition ARNs"
   value = {
-    api = aws_ecs_task_definition.api.arn
+    api      = aws_ecs_task_definition.api.arn
+    frontend = aws_ecs_task_definition.frontend.arn
   }
 }
 

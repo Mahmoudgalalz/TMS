@@ -60,7 +60,6 @@ resource "aws_iam_role_policy" "codebuild" {
           "s3:DeleteObject"
         ]
         Resource = [
-          "${var.frontend_bucket_arn}/*",
           "${var.build_artifacts_bucket_arn}/*"
         ]
       },
@@ -70,7 +69,6 @@ resource "aws_iam_role_policy" "codebuild" {
           "s3:ListBucket"
         ]
         Resource = [
-          var.frontend_bucket_arn,
           var.build_artifacts_bucket_arn
         ]
       },
@@ -177,10 +175,7 @@ resource "aws_codebuild_project" "frontend" {
     type                       = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
 
-    environment_variable {
-      name  = "S3_BUCKET"
-      value = var.frontend_bucket_name
-    }
+    # S3_BUCKET environment variable removed - using ECS Fargate for frontend
 
     dynamic "environment_variable" {
       for_each = var.cloudfront_distribution_id != null ? [1] : []

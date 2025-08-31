@@ -39,12 +39,6 @@ output "ecr_repositories" {
   }
 }
 
-# S3 Frontend
-output "frontend_bucket_name" {
-  description = "S3 bucket name for frontend hosting"
-  value       = module.s3_frontend.bucket_name
-}
-
 # Frontend - CloudFront outputs commented out due to AWS account limitations
 # output "frontend_cloudfront_domain" {
 #   description = "CloudFront distribution domain name"
@@ -63,15 +57,7 @@ output "ecs_service_names" {
 }
 
 # CI/CD
-output "codebuild_project_names" {
-  description = "CodeBuild project names"
-  value       = module.codebuild.project_names
-}
-
-output "codepipeline_name" {
-  description = "CodePipeline name"
-  value       = module.codebuild.pipeline_name
-}
+# CodeBuild outputs removed - module not used in current configuration
 
 # Monitoring
 output "cloudwatch_dashboard_url" {
