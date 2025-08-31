@@ -56,7 +56,7 @@ const NotificationSystem = () => {
         <div
           key={notification.id}
           className={cn(
-            'max-w-sm w-full shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden',
+            'max-w-2xl w-[24rem] shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden',
             getBackgroundColor(notification.type)
           )}
         >

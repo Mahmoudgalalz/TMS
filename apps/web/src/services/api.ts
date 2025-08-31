@@ -56,8 +56,8 @@ export const authApi = {
 }
 
 export const ticketsApi = {
-  getTickets: (query?: TicketQuery): Promise<{ data: PaginatedResponse<Ticket> }> =>
-    api.get('/tickets', { params: query }),
+  getTickets: (query?: TicketQuery): Promise<PaginatedResponse<Ticket>> =>
+    api.get('/tickets', { params: query }).then(response => response.data.data),
   getTicket: (id: string): Promise<{ data: Ticket }> =>
     api.get(`/tickets/${id}`),
   createTicket: (data: CreateTicketDto): Promise<{ data: Ticket }> =>

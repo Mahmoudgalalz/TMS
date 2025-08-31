@@ -105,11 +105,11 @@ export class TicketsService {
 
     const results = await query.limit(limit).offset(offset);
     
-    // Get total count for pagination
+    // Get total count for pagination with same filters
     const [{ count }] = await this.db
       .select({ count: tickets.id })
       .from(tickets)
-      .where(isNull(tickets.deletedAt));
+      .where(and(...conditions));
 
     return {
       data: results,

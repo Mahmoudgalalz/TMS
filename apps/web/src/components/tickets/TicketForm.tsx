@@ -49,16 +49,24 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
     }
   })
 
+  const watchedTitle = watch('title')
   const watchedDescription = watch('description')
+  const watchedSeverity = watch('severity')
 
   const getAISuggestion = async () => {
-    if (!watchedDescription || watchedDescription.length < 50) return
+    if (!watchedTitle || !watchedDescription || watchedTitle.trim().length < 3 || watchedDescription.trim().length < 10) {
+      addNotification({
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please provide both a title (min 3 characters) and description (min 10 characters) for AI analysis.'
+      })
+      return
+    }
 
     setLoadingAI(true)
     try {
-      const title = watch('title') || ''
       const response = await api.post('/ai/predict-severity', {
-        title,
+        title: watchedTitle,
         description: watchedDescription,
       })
 
@@ -160,21 +168,20 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
                 <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
               )}
               
-              {/* AI Suggestion */}
-              {watchedDescription && watchedDescription.length >= 50 && (
-                <div className="mt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={getAISuggestion}
-                    disabled={loadingAI}
-                  >
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    {loadingAI ? 'Analyzing...' : 'Get AI Severity Suggestion'}
-                  </Button>
-                </div>
-              )}
+              {/* AI Button */}
+              <div className="mt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className='bg-purple-500/25 text-purple-500 hover:bg-purple-500/50 hover:text-purple-500'
+                  size="sm"
+                  onClick={getAISuggestion}
+                  disabled={loadingAI || !watchedTitle?.trim() || !watchedDescription?.trim()}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {loadingAI ? 'Analyzing...' : 'AI'}
+                </Button>
+              </div>
 
               {aiSuggestion && (
                 <div className="mt-2 p-3 bg-blue-50 rounded-md">
@@ -205,8 +212,8 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Severity *
               </label>
-              <Select onValueChange={(value) => setValue('severity', value as any)}>
-                <SelectTrigger>
+              <Select value={watchedSeverity} onValueChange={(value) => setValue('severity', value as any)} disabled={loadingAI}>
+                <SelectTrigger className={loadingAI ? 'opacity-50 cursor-not-allowed' : ''}>
                   <SelectValue placeholder="Select severity" />
                 </SelectTrigger>
                 <SelectContent>
@@ -230,6 +237,7 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
               </label>
               <Input
                 type="date"
+                min={new Date().toISOString().split('T')[0]}
                 {...register('dueDate')}
               />
             </div>

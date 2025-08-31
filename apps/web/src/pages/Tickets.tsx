@@ -20,7 +20,7 @@ const Tickets = () => {
   })
 
   const tickets = (Array.isArray(data?.data) ? data.data : []) as Ticket[]
-  const totalPages = 1 // Will be fixed when backend returns proper pagination
+  const totalPages = data?.pagination?.totalPages || 1
 
   const getStatusColor = (status: TicketStatus) => {
     switch (status) {

@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcryptjs';
+import { eq } from 'drizzle-orm';
 import { users, tickets, ticketHistory } from '../schema';
 
 async function createConnection() {
@@ -20,15 +21,23 @@ async function createConnection() {
 async function seedUsers(db: NodePgDatabase<any>) {
   console.log('Seeding users...');
   
+  // Check if users already exist
+  const existingUsers = await db.select().from(users).limit(1);
+  if (existingUsers.length > 0) {
+    console.log('Users already exist, skipping user seeding');
+    return await db.select().from(users);
+  }
+  
   const hashedPassword = await bcrypt.hash('password123', 10);
   
+  // Use fixed usernames and emails for consistency
   const sampleUsers = [
     {
       id: uuidv4(),
       username: 'john.doe',
       email: 'john.doe@company.com',
       role: 'associate' as const,
-      password: await bcrypt.hash('password123', 10),
+      password: hashedPassword,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -37,7 +46,7 @@ async function seedUsers(db: NodePgDatabase<any>) {
       username: 'jane.smith',
       email: 'jane.smith@company.com',
       role: 'manager' as const,
-      password: await bcrypt.hash('password123', 10),
+      password: hashedPassword,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -46,7 +55,7 @@ async function seedUsers(db: NodePgDatabase<any>) {
       username: 'mike.wilson',
       email: 'mike.wilson@company.com',
       role: 'associate' as const,
-      password: await bcrypt.hash('password123', 10),
+      password: hashedPassword,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -78,7 +87,7 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
       description: 'Users are reporting that they cannot log into the mobile application after the recent update. The error message shows "Invalid credentials" even with correct login details.',
       severity: 'HIGH',
       status: 'OPEN',
-      createdBy: associates[0].id,
+      createdById: associates[0].id,
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
       createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
       updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
@@ -89,7 +98,7 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
       description: 'Database queries are running significantly slower than usual. Response times have increased from 100ms to 5+ seconds for basic operations.',
       severity: 'VERY_HIGH' as const,
       status: 'OPEN' as const,
-      createdBy: managers[1].id,
+      createdById: managers[0].id,
       dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 day from now
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
       updatedAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
@@ -101,7 +110,7 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
       description: 'Multiple users have requested dark mode support for the web application to improve usability during nighttime hours.',
       severity: 'HIGH' as const,
       status: 'OPEN' as const,
-      createdBy: associates[0].id,
+      createdById: associates[0].id,
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
       createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
       updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
@@ -112,7 +121,7 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
       description: 'Users are not receiving email notifications for password resets and account updates. SMTP configuration may need review.',
       severity: 'MEDIUM' as const,
       status: 'CLOSED' as const,
-      createdBy: managers[0].id,
+      createdById: managers[0].id,
       dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days from now
       createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
       updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
@@ -123,7 +132,7 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
       description: 'Third-party API integration is hitting rate limits during peak hours, causing timeout errors for users.',
       severity: 'HIGH',
       status: 'OPEN',
-      createdBy: associates[1].id,
+      createdById: associates[1].id,
       dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days from now
       createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
       updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
@@ -139,12 +148,19 @@ async function seedTickets(db: NodePgDatabase<any>, sampleUsers: any[]) {
 async function seedTicketHistory(db: NodePgDatabase<any>, sampleTickets: any[], sampleUsers: any[]) {
   console.log('Seeding ticket history...');
   
+  // Check if ticket history already exists
+  const existingHistory = await db.select().from(ticketHistory).limit(1);
+  if (existingHistory.length > 0) {
+    console.log('Ticket history already exists, skipping history seeding');
+    return;
+  }
+  
   const historyEntries = [
     // History for ticket 1
     {
       id: uuidv4(),
       ticketId: sampleTickets[0].id,
-      changedBy: sampleTickets[0].createdBy,
+      changedBy: sampleTickets[0].createdById,
       actionType: 'created',
       oldValue: null,
       newValue: JSON.stringify({ status: 'open', severity: 'high' }),
@@ -155,7 +171,7 @@ async function seedTicketHistory(db: NodePgDatabase<any>, sampleTickets: any[], 
     {
       id: uuidv4(),
       ticketId: sampleTickets[1].id,
-      changedBy: sampleTickets[1].createdBy,
+      changedBy: sampleTickets[1].createdById,
       actionType: 'created',
       oldValue: null,
       newValue: JSON.stringify({ status: 'open', severity: 'very_high' }),
@@ -165,7 +181,7 @@ async function seedTicketHistory(db: NodePgDatabase<any>, sampleTickets: any[], 
     {
       id: uuidv4(),
       ticketId: sampleTickets[1].id,
-      changedBy: sampleTickets[1].createdBy,
+      changedBy: sampleTickets[1].createdById,
       actionType: 'status_changed',
       oldValue: JSON.stringify({ status: 'open' }),
       newValue: JSON.stringify({ status: 'open' }),
@@ -176,7 +192,7 @@ async function seedTicketHistory(db: NodePgDatabase<any>, sampleTickets: any[], 
     {
       id: uuidv4(),
       ticketId: sampleTickets[3].id,
-      changedBy: sampleTickets[3].createdBy,
+      changedBy: sampleTickets[3].createdById,
       actionType: 'created',
       oldValue: null,
       newValue: JSON.stringify({ status: 'open', severity: 'medium' }),
@@ -186,7 +202,7 @@ async function seedTicketHistory(db: NodePgDatabase<any>, sampleTickets: any[], 
     {
       id: uuidv4(),
       ticketId: sampleTickets[3].id,
-      changedBy: sampleTickets[3].createdBy,
+      changedBy: sampleTickets[3].createdById,
       actionType: 'status_changed',
       oldValue: JSON.stringify({ status: 'open' }),
       newValue: JSON.stringify({ status: 'open' }),
@@ -196,7 +212,7 @@ async function seedTicketHistory(db: NodePgDatabase<any>, sampleTickets: any[], 
     {
       id: uuidv4(),
       ticketId: sampleTickets[3].id,
-      changedBy: sampleTickets[3].createdBy,
+      changedBy: sampleTickets[3].createdById,
       actionType: 'status_changed',
       oldValue: JSON.stringify({ status: 'open' }),
       newValue: JSON.stringify({ status: 'closed' }),
@@ -207,7 +223,7 @@ async function seedTicketHistory(db: NodePgDatabase<any>, sampleTickets: any[], 
     {
       id: uuidv4(),
       ticketId: sampleTickets[4].id,
-      changedBy: sampleTickets[4].createdBy,
+      changedBy: sampleTickets[4].createdById,
       actionType: 'created',
       oldValue: null,
       newValue: JSON.stringify({ status: 'open', severity: 'high' }),
@@ -217,7 +233,7 @@ async function seedTicketHistory(db: NodePgDatabase<any>, sampleTickets: any[], 
     {
       id: uuidv4(),
       ticketId: sampleTickets[4].id,
-      changedBy: sampleTickets[4].createdBy,
+      changedBy: sampleTickets[4].createdById,
       actionType: 'status_changed',
       oldValue: JSON.stringify({ status: 'open' }),
       newValue: JSON.stringify({ status: 'closed' }),
@@ -227,7 +243,7 @@ async function seedTicketHistory(db: NodePgDatabase<any>, sampleTickets: any[], 
     {
       id: uuidv4(),
       ticketId: sampleTickets[4].id,
-      changedBy: sampleTickets[4].createdBy,
+      changedBy: sampleTickets[4].createdById,
       actionType: 'status_changed',
       oldValue: JSON.stringify({ status: 'closed' }),
       newValue: JSON.stringify({ status: 'open' }),
@@ -260,6 +276,7 @@ async function main() {
     console.log('\nSample login credentials:');
     console.log('Manager: jane.smith@company.com / password123');
     console.log('Associate: john.doe@company.com / password123');
+    console.log('Associate: mike.wilson@company.com / password123');
     
   } catch (error) {
     console.error('Error seeding database:', error);
