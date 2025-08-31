@@ -18,6 +18,10 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
+# Build shared packages first
+RUN pnpm --filter @service-ticket/types build
+RUN pnpm --filter @service-ticket/config build
+
 # Build the application
 RUN pnpm --filter web build
 

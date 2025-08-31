@@ -109,7 +109,7 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
 
       const submitData = {
         ...data,
-        dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+        dueDate: data.dueDate && typeof data.dueDate === 'string' && data.dueDate.trim() ? new Date(data.dueDate) : undefined,
         ...(needsSeverityReason && severityChangeReason.trim() && { reason: severityChangeReason.trim() })
       }
 

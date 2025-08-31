@@ -107,7 +107,7 @@ const Tickets = () => {
             className="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
           >
             <option value="">All Statuses</option>
-            {Object.values(TicketStatus).map((status) => (
+            {Object.values(TicketStatus).map((status: string) => (
               <option key={status} value={status}>
                 {status.replace('_', ' ').toUpperCase()}
               </option>
@@ -121,7 +121,7 @@ const Tickets = () => {
             className="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
           >
             <option value="">All Severities</option>
-            {Object.values(TicketSeverity).map((severity) => (
+            {Object.values(TicketSeverity).map((severity: string) => (
               <option key={severity} value={severity}>
                 {severity.toUpperCase()}
               </option>
