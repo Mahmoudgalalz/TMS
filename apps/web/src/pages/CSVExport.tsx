@@ -100,9 +100,10 @@ const CSVExport = () => {
                 <SelectValue placeholder="Select status to export" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={TicketStatus.DRAFT}>Draft Tickets Only</SelectItem>
+                <SelectItem value={TicketStatus.REVIEW}>Review Tickets Only</SelectItem>
+                <SelectItem value={TicketStatus.PENDING}>Pending Tickets Only</SelectItem>
                 <SelectItem value={TicketStatus.OPEN}>Open Tickets Only</SelectItem>
-                <SelectItem value={TicketStatus.IN_PROGRESS}>In Progress Tickets Only</SelectItem>
-                <SelectItem value={TicketStatus.RESOLVED}>Resolved Tickets Only</SelectItem>
                 <SelectItem value={TicketStatus.CLOSED}>Closed Tickets Only</SelectItem>
                 <SelectItem value="all">All Tickets</SelectItem>
               </SelectContent>

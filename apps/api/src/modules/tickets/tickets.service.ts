@@ -22,7 +22,7 @@ export class TicketsService {
       title: createTicketDto.title,
       description: createTicketDto.description,
       severity: createTicketDto.severity || TicketSeverity.MEDIUM,
-      status: TicketStatus.OPEN,
+      status: TicketStatus.DRAFT, // Associates create tickets in DRAFT status
       assignedToId: createTicketDto.assignedToId,
       createdById,
       dueDate: createTicketDto.dueDate ? new Date(createTicketDto.dueDate).toISOString().split('T')[0] : null,
@@ -38,7 +38,7 @@ export class TicketsService {
       createdById,
       'created',
       null,
-      JSON.stringify({ status: TicketStatus.OPEN, severity: ticket.severity }),
+      JSON.stringify({ status: TicketStatus.DRAFT, severity: ticket.severity }),
       'Ticket created'
     );
 
@@ -154,8 +154,11 @@ export class TicketsService {
     return ticket;
   }
 
-  async update(id: string, updateTicketDto: UpdateTicketDto, updatedById: string) {
+  async update(id: string, updateTicketDto: UpdateTicketDto, updatedById: string, userRole: string) {
     const existingTicket = await this.findOne(id);
+    
+    // Validate role-based permissions
+    await this.validateUpdatePermissions(existingTicket, updateTicketDto, updatedById, userRole);
     
     // Validate status transitions
     if (updateTicketDto.status && !this.isValidStatusTransition(existingTicket.status as TicketStatus, updateTicketDto.status)) {
@@ -202,6 +205,43 @@ export class TicketsService {
         updateTicketDto.reason || 'Ticket updated'
       );
     }
+
+    return this.findOne(id);
+  }
+
+  async approveTicket(id: string, managerId: string) {
+    const existingTicket = await this.findOne(id);
+    
+    // Validate Manager can approve this ticket
+    if (existingTicket.createdById === managerId) {
+      throw new BadRequestException('Managers cannot approve tickets they created');
+    }
+    
+    if (existingTicket.status !== TicketStatus.DRAFT) {
+      throw new BadRequestException('Only tickets in Draft status can be approved');
+    }
+
+    // Approve ticket by changing status to PENDING
+    const updateData = {
+      status: TicketStatus.PENDING,
+      updatedAt: new Date(),
+    };
+
+    const [updatedTicket] = await this.db
+      .update(tickets)
+      .set(updateData)
+      .where(eq(tickets.id, id))
+      .returning();
+
+    // Create history entry
+    await this.createHistoryEntry(
+      id,
+      managerId,
+      'status_changed',
+      TicketStatus.DRAFT,
+      TicketStatus.PENDING,
+      'Ticket approved by Manager'
+    );
 
     return this.findOne(id);
   }
@@ -271,16 +311,91 @@ export class TicketsService {
       nextNumber = currentNumber + 1;
     }
 
-    return `${prefix}-${nextNumber.toString().padStart(4, '0')}`;
+    return `${prefix}-${nextNumber.toString().padStart(6, '0')}`;
+  }
+
+  private async validateUpdatePermissions(existingTicket: any, updateDto: UpdateTicketDto, updatedById: string, userRole: string) {
+    const isAssociate = userRole === 'associate';
+    const isManager = userRole === 'manager';
+    const isTicketCreator = existingTicket.createdById === updatedById;
+
+    // Associate permissions
+    if (isAssociate) {
+      // Associates can only edit their own tickets
+      if (!isTicketCreator) {
+        throw new BadRequestException('Associates can only edit tickets they created');
+      }
+
+      // Associates can edit title/description if ticket is in REVIEW status (resets to DRAFT)
+      if (existingTicket.status === TicketStatus.REVIEW) {
+        if (updateDto.title || updateDto.description) {
+          // Automatically reset status to DRAFT when Associate edits a ticket in REVIEW
+          updateDto.status = TicketStatus.DRAFT;
+        }
+        // Associates cannot change severity when ticket is in REVIEW status
+        if (updateDto.severity) {
+          throw new BadRequestException('Associates cannot change severity when ticket is in Review status');
+        }
+      }
+
+      // Associates cannot change status directly (except through the REVIEW -> DRAFT rule above)
+      if (updateDto.status && existingTicket.status !== TicketStatus.REVIEW) {
+        throw new BadRequestException('Associates cannot change ticket status directly');
+      }
+    }
+
+    // Manager permissions
+    if (isManager) {
+      // Managers cannot review tickets they created
+      if (isTicketCreator && updateDto.status && existingTicket.status === TicketStatus.DRAFT) {
+        throw new BadRequestException('Managers cannot review tickets they created');
+      }
+
+      // Managers can only review tickets in DRAFT status
+      if (updateDto.status && existingTicket.status !== TicketStatus.DRAFT && 
+          (updateDto.status === TicketStatus.PENDING || updateDto.status === TicketStatus.REVIEW)) {
+        throw new BadRequestException('Managers can only review tickets in Draft status');
+      }
+
+      // Validate severity change requirements
+      if (updateDto.severity && updateDto.severity !== existingTicket.severity) {
+        if (!updateDto.reason) {
+          throw new BadRequestException('Severity change reason is mandatory for Managers');
+        }
+        
+        // Determine new status based on severity change
+        const oldSeverityLevel = this.getSeverityLevel(existingTicket.severity);
+        const newSeverityLevel = this.getSeverityLevel(updateDto.severity);
+        
+        if (newSeverityLevel < oldSeverityLevel) {
+          // Severity lowered -> PENDING
+          updateDto.status = TicketStatus.PENDING;
+        } else if (newSeverityLevel > oldSeverityLevel) {
+          // Severity increased -> REVIEW (escalate to Associate)
+          updateDto.status = TicketStatus.REVIEW;
+        }
+      }
+    }
+  }
+
+  private getSeverityLevel(severity: TicketSeverity): number {
+    const levels = {
+      [TicketSeverity.EASY]: 1,
+      [TicketSeverity.LOW]: 2,
+      [TicketSeverity.MEDIUM]: 3,
+      [TicketSeverity.HIGH]: 4,
+      [TicketSeverity.VERY_HIGH]: 5,
+    };
+    return levels[severity] || 3;
   }
 
   private isValidStatusTransition(currentStatus: TicketStatus, newStatus: TicketStatus): boolean {
     const validTransitions = {
-      [TicketStatus.OPEN]: [TicketStatus.IN_PROGRESS, TicketStatus.CLOSED],
-      [TicketStatus.IN_PROGRESS]: [TicketStatus.OPEN, TicketStatus.RESOLVED, TicketStatus.CLOSED],
-      [TicketStatus.RESOLVED]: [TicketStatus.CLOSED, TicketStatus.REOPENED],
-      [TicketStatus.CLOSED]: [TicketStatus.REOPENED],
-      [TicketStatus.REOPENED]: [TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED, TicketStatus.CLOSED],
+      [TicketStatus.DRAFT]: [TicketStatus.REVIEW, TicketStatus.PENDING, TicketStatus.OPEN],
+      [TicketStatus.REVIEW]: [TicketStatus.DRAFT, TicketStatus.PENDING, TicketStatus.OPEN, TicketStatus.CLOSED],
+      [TicketStatus.PENDING]: [TicketStatus.DRAFT, TicketStatus.REVIEW, TicketStatus.OPEN, TicketStatus.CLOSED],
+      [TicketStatus.OPEN]: [TicketStatus.PENDING, TicketStatus.CLOSED],
+      [TicketStatus.CLOSED]: [TicketStatus.OPEN], // Allow reopening closed tickets
     };
 
     return validTransitions[currentStatus]?.includes(newStatus) || false;

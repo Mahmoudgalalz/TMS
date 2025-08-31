@@ -13,27 +13,32 @@ const Tickets = () => {
     sortOrder: 'desc',
   })
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['tickets', query],
     queryFn: () => ticketsApi.getTickets(query),
     placeholderData: (previousData) => previousData
   })
 
+  console.log('Tickets query result:', { data, isLoading, error })
+
   const tickets = (Array.isArray(data?.data) ? data.data : []) as Ticket[]
+  console.log('hi')
   const totalPages = data?.pagination?.totalPages || 1
+
+  console.log('Processed tickets:', tickets)
 
   const getStatusColor = (status: TicketStatus) => {
     switch (status) {
+      case TicketStatus.DRAFT:
+        return 'bg-gray-100 text-gray-800'
+      case TicketStatus.REVIEW:
+        return 'bg-purple-100 text-purple-800'
+      case TicketStatus.PENDING:
+        return 'bg-yellow-100 text-yellow-800'
       case TicketStatus.OPEN:
         return 'bg-green-100 text-green-800'
-      case TicketStatus.IN_PROGRESS:
-        return 'bg-yellow-100 text-yellow-800'
-      case TicketStatus.REOPENED:
-        return 'bg-orange-100 text-orange-800'
-      case TicketStatus.RESOLVED:
-        return 'bg-blue-100 text-blue-800'
       case TicketStatus.CLOSED:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-blue-100 text-blue-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
@@ -125,10 +130,25 @@ const Tickets = () => {
         </div>
       </div>
 
+      {/* Debug Info */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+        <p className="text-sm text-yellow-800">
+          Debug: Found {tickets.length} tickets. Loading: {isLoading ? 'Yes' : 'No'}
+        </p>
+        <p className="text-xs text-yellow-600 mt-1">
+          Data structure: {JSON.stringify(data, null, 2)}
+        </p>
+      </div>
+
       {/* Tickets List */}
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {tickets.map((ticket) => (
+        {tickets.length === 0 && !isLoading ? (
+          <div className="p-6 text-center text-gray-500">
+            No tickets found. {error ? `Error: ${error.message}` : ''}
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-200">
+            {tickets.map((ticket) => (
             <li key={ticket.id}>
               <Link
                 to={`/tickets/${ticket.id}`}
@@ -166,7 +186,8 @@ const Tickets = () => {
               </Link>
             </li>
           ))}
-        </ul>
+          </ul>
+        )}
       </div>
 
       {/* Pagination */}

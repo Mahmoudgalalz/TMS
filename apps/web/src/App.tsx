@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import TicketList from './components/tickets/TicketList'
 import TicketForm from './components/tickets/TicketForm'
+import TicketDetail from './pages/TicketDetail'
 import CSVExport from './pages/CSVExport'
 import CSVImport from './pages/CSVImport'
 import Analytics from './pages/Analytics'
@@ -22,10 +23,13 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="tickets" element={<TicketList />} />
           <Route path="tickets/new" element={<TicketForm />} />
+          <Route path="tickets/:id" element={<TicketDetail />} />
           <Route path="tickets/:id/edit" element={<TicketForm />} />
           <Route path="csv/export" element={<CSVExport />} />
           <Route path="csv/import" element={<CSVImport />} />
           <Route path="users" element={<Users />} />
+          <Route path="users/new" element={<Users />} />
+          <Route path="users/:id/edit" element={<Users />} />
           <Route path="analytics" element={<Analytics />} />
         </Route>
       </Routes>

@@ -33,7 +33,7 @@ export class CsvProcessor {
         .select()
         .from(tickets)
         .where(and(
-          eq(tickets.status, 'OPEN'),
+          eq(tickets.status, TicketStatus.PENDING),
           eq(tickets.deletedAt, null)
         ));
 
@@ -83,7 +83,7 @@ export class CsvProcessor {
         .select()
         .from(tickets)
         .where(and(
-          eq(tickets.status, 'OPEN'),
+          eq(tickets.status, TicketStatus.PENDING),
           eq(tickets.deletedAt, null)
         ));
 
@@ -92,8 +92,8 @@ export class CsvProcessor {
         return { processedCount: 0 };
       }
 
-      // Simulate automated processing: 30% IN_PROGRESS, 30% RESOLVED, 30% CLOSED, 10% remain OPEN
-      const statusDistribution: TicketStatus[] = [TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED, TicketStatus.CLOSED];
+      // Simulate automated processing: 30% OPEN, 30% CLOSED, 30% remain PENDING
+      const statusDistribution: TicketStatus[] = [TicketStatus.OPEN, TicketStatus.CLOSED];
       let processedCount = 0;
 
       for (const ticket of pendingTickets) {
@@ -101,13 +101,11 @@ export class CsvProcessor {
         let newStatus: TicketStatus;
 
         if (random < 0.3) {
-          newStatus = TicketStatus.OPEN; // Keep as open
+          newStatus = TicketStatus.OPEN;
         } else if (random < 0.6) {
-          newStatus = TicketStatus.IN_PROGRESS;
-        } else if (random < 0.9) {
           newStatus = TicketStatus.CLOSED;
         } else {
-          continue; // 10% remain unchanged
+          continue; // 40% remain unchanged
         }
 
         if (newStatus !== ticket.status) {

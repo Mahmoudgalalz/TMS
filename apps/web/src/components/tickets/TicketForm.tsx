@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { TicketSeverity } from '@service-ticket/types'
+import { TicketSeverity, Ticket } from '@service-ticket/types'
 import { useTicketsStore } from '../../stores/tickets'
 import { useUIStore } from '../../stores/ui'
+import { useRolePermissions } from '../../hooks/useRolePermissions'
 import { api } from '../../services/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,16 +27,17 @@ type TicketFormData = z.infer<typeof ticketSchema>
 
 interface TicketFormProps {
   ticketId?: string
-  initialData?: Partial<TicketFormData>
+  initialData?: Partial<TicketFormData & { ticket?: Ticket }>
 }
 
 const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
   const navigate = useNavigate()
   const { createTicket, updateTicket, loading } = useTicketsStore()
   const { addNotification } = useUIStore()
+  const permissions = useRolePermissions()
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null)
   const [loadingAI, setLoadingAI] = useState(false)
-
+  const [severityChangeReason, setSeverityChangeReason] = useState('')
   const {
     register,
     handleSubmit,
@@ -52,6 +54,10 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
   const watchedTitle = watch('title')
   const watchedDescription = watch('description')
   const watchedSeverity = watch('severity')
+
+  // Check if severity change reason is required
+  const needsSeverityReason = initialData?.ticket && 
+    permissions.requiresSeverityChangeReason(initialData.ticket, watchedSeverity)
 
   const getAISuggestion = async () => {
     if (!watchedTitle || !watchedDescription || watchedTitle.trim().length < 3 || watchedDescription.trim().length < 10) {
@@ -91,26 +97,38 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
 
   const onSubmit = async (data: TicketFormData) => {
     try {
-      const formattedData = {
-        ...data,
-        dueDate: data.dueDate ? new Date(data.dueDate) : undefined
+      // Validate severity change reason if required
+      if (needsSeverityReason && !severityChangeReason.trim()) {
+        addNotification({
+          type: 'error',
+          title: 'Missing Information',
+          message: 'Please provide a reason for the severity change.'
+        })
+        return
       }
-      
-      if (ticketId) {
-        await updateTicket(ticketId, formattedData)
+
+      const submitData = {
+        ...data,
+        dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+        ...(needsSeverityReason && severityChangeReason.trim() && { reason: severityChangeReason.trim() })
+      }
+
+      if (initialData?.ticket) {
+        await updateTicket(initialData.ticket.id, submitData)
         addNotification({
           type: 'success',
           title: 'Ticket updated',
           message: 'Your ticket has been updated successfully.'
         })
       } else {
-        await createTicket(formattedData)
+        await createTicket(submitData)
         addNotification({
           type: 'success',
           title: 'Ticket created',
           message: 'Your ticket has been created successfully.'
         })
       }
+      
       navigate('/tickets')
     } catch (error) {
       addNotification({
@@ -147,6 +165,7 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
               <Input
                 {...register('title')}
                 placeholder="Brief description of the issue"
+                disabled={initialData?.ticket && !permissions.canEditTicketTitle(initialData.ticket)}
               />
               {errors.title && (
                 <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
@@ -163,6 +182,7 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
                 placeholder="Detailed description of the issue..."
                 rows={6}
                 className="resize-none"
+                disabled={initialData?.ticket && !permissions.canEditTicketDescription(initialData.ticket)}
               />
               {errors.description && (
                 <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
@@ -173,7 +193,7 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
                 <Button
                   type="button"
                   variant="outline"
-                  className='bg-purple-500/25 text-purple-500 hover:bg-purple-500/50 hover:text-purple-500'
+                  className='bg-purple-100 text-purple-700 hover:bg-purple-200 hover:text-purple-800 border-purple-300'
                   size="sm"
                   onClick={getAISuggestion}
                   disabled={loadingAI || !watchedTitle?.trim() || !watchedDescription?.trim()}
@@ -212,7 +232,11 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Severity *
               </label>
-              <Select value={watchedSeverity} onValueChange={(value) => setValue('severity', value as any)} disabled={loadingAI}>
+              <Select 
+                value={watchedSeverity} 
+                onValueChange={(value) => setValue('severity', value as any)} 
+                disabled={loadingAI || (initialData?.ticket && !permissions.canEditTicketSeverity(initialData.ticket))}
+              >
                 <SelectTrigger className={loadingAI ? 'opacity-50 cursor-not-allowed' : ''}>
                   <SelectValue placeholder="Select severity" />
                 </SelectTrigger>
@@ -228,6 +252,25 @@ const TicketForm = ({ ticketId, initialData }: TicketFormProps) => {
                 <p className="mt-1 text-sm text-red-600">{errors.severity.message}</p>
               )}
             </div>
+
+            {/* Severity Change Reason - Only for Managers when changing severity */}
+            {needsSeverityReason && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason for Severity Change *
+                </label>
+                <Textarea
+                  value={severityChangeReason}
+                  onChange={(e) => setSeverityChangeReason(e.target.value)}
+                  placeholder="Please explain why you are changing the severity level..."
+                  rows={3}
+                  className="resize-none"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Managers must provide a reason when changing ticket severity.
+                </p>
+              </div>
+            )}
 
 
             {/* Due Date */}

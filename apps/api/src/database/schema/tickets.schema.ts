@@ -16,12 +16,11 @@ export const ticketSeverityEnum = pgEnum('ticket_severity', [
 
 // Ticket status enum
 export const ticketStatusEnum = pgEnum('ticket_status', [
-  'OPEN',
-  'IN_PROGRESS',
-  'RESOLVED',
-  'CLOSED',
   'DRAFT',
-  'REOPENED'
+  'REVIEW',
+  'PENDING',
+  'OPEN',
+  'CLOSED'
 ]);
 
 // Tickets table schema
@@ -93,7 +92,7 @@ export const insertTicketSchema = createInsertSchema(tickets, {
   title: z.string().min(1).max(255),
   description: z.string().min(1),
   severity: z.enum(['VERY_HIGH', 'HIGH', 'MEDIUM', 'LOW', 'EASY']),
-  status: z.enum(['DRAFT', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED']),
+  status: z.enum(['DRAFT', 'REVIEW', 'PENDING', 'OPEN', 'CLOSED']),
   dueDate: z.string().optional(),
 });
 

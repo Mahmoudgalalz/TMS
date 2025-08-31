@@ -3,12 +3,18 @@ import {
   CreateTicketDto, 
   UpdateTicketDto, 
   CreateCommentDto, 
-  TicketQuery,
-  PaginatedResponse,
   Ticket,
   User,
   Comment
 } from '@service-ticket/types'
+
+interface TicketQueryParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+  severity?: string;
+  search?: string;
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'
 
@@ -39,10 +45,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // if (error.response?.status === 401) {
-    //   localStorage.removeItem('auth-storage')
-    //   window.location.href = '/login'
-    // }
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth-storage')
+      window.location.href = '/login'
+    }
     console.log(error)
     return Promise.reject(error)
   }
@@ -56,34 +62,22 @@ export const authApi = {
 }
 
 export const ticketsApi = {
-  getTickets: (query?: TicketQuery): Promise<PaginatedResponse<Ticket>> =>
-    api.get('/tickets', { params: query }).then(response => response.data.data),
+  getTickets: (query?: TicketQueryParams): Promise<{ data: Ticket[]; pagination: any }> =>
+    api.get('/tickets', { params: query }),
   getTicket: (id: string): Promise<{ data: Ticket }> =>
     api.get(`/tickets/${id}`),
   createTicket: (data: CreateTicketDto): Promise<{ data: Ticket }> =>
     api.post('/tickets', data),
   updateTicket: (id: string, data: UpdateTicketDto): Promise<{ data: Ticket }> =>
     api.patch(`/tickets/${id}`, data),
-  deleteTicket: (id: string, reason?: string) =>
-    api.delete(`/tickets/${id}`, { data: { reason } }),
-  getTicketHistory: (id: string) =>
-    api.get(`/tickets/${id}/history`),
-  getMyAssignedTickets: (query?: TicketQuery) =>
-    api.get('/tickets/my/assigned', { params: query }),
-  getMyCreatedTickets: (query?: TicketQuery) =>
+  deleteTicket: (id: string) =>
+    api.delete(`/tickets/${id}`),
+  getMyTickets: (query?: TicketQueryParams): Promise<{ data: Ticket[]; pagination: any }> =>
+    api.get('/tickets/my', { params: query }),
+  getMyCreatedTickets: (query?: TicketQueryParams): Promise<{ data: Ticket[]; pagination: any }> =>
     api.get('/tickets/my/created', { params: query }),
-}
-
-// Note: Comments endpoints not implemented in backend yet
-export const commentsApi = {
-  getComments: (ticketId: string): Promise<{ data: Comment[] }> =>
-    api.get(`/tickets/${ticketId}/comments`),
-  createComment: (ticketId: string, data: CreateCommentDto): Promise<{ data: Comment }> =>
-    api.post(`/tickets/${ticketId}/comments`, data),
-  updateComment: (commentId: string, data: Partial<CreateCommentDto>) =>
-    api.patch(`/comments/${commentId}`, data),
-  deleteComment: (commentId: string) =>
-    api.delete(`/comments/${commentId}`),
+  approveTicket: (id: string, data: { reason?: string }): Promise<{ data: Ticket }> =>
+    api.post(`/tickets/${id}/approve`, data),
 }
 
 export const usersApi = {
@@ -99,11 +93,6 @@ export const usersApi = {
     api.delete(`/users/${id}`),
 }
 
-// Note: Dashboard stats endpoint not implemented in backend yet
-export const dashboardApi = {
-  getStats: () =>
-    api.get('/dashboard/stats'),
-}
 
 export const aiApi = {
   analyzeTicket: (data: { title: string; description: string }) =>

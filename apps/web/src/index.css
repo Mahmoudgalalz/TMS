@@ -24,39 +24,5 @@
   .card {
     @apply bg-white shadow rounded-lg p-6;
   }
-
-  /* Fix modal and overlay backgrounds */
-  .modal-overlay {
-    @apply fixed inset-0 bg-black bg-opacity-50 z-40;
-  }
-  
-  .modal-content {
-    @apply bg-white rounded-lg shadow-xl z-50;
-  }
-
-  /* Fix checkbox styling */
-  input[type="checkbox"] {
-    @apply h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded bg-white;
-  }
-
-  /* Fix notification width and styling */
-  .notification {
-    @apply min-w-80 max-w-md bg-white shadow-lg rounded-lg border border-gray-200 p-4;
-  }
-  
-  .notification-success {
-    @apply border-l-4 border-green-400 bg-green-50;
-  }
-  
-  .notification-error {
-    @apply border-l-4 border-red-400 bg-red-50;
-  }
-  
-  .notification-warning {
-    @apply border-l-4 border-yellow-400 bg-yellow-50;
-  }
-  
-  .notification-info {
-    @apply border-l-4 border-blue-400 bg-blue-50;
-  }
 }
+

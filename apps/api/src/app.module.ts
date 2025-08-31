@@ -8,6 +8,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CsvModule } from './modules/csv/csv.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { TicketsModule } from './modules/tickets/tickets.module';
     TicketsModule,
     CsvModule,
     AiModule,
+    UsersModule,
     WebsocketModule,
     HealthModule,
   ],

@@ -32,11 +32,10 @@ export interface Ticket {
 
 export enum TicketStatus {
   DRAFT = 'DRAFT',
+  REVIEW = 'REVIEW',
+  PENDING = 'PENDING',
   OPEN = 'OPEN',
-  IN_PROGRESS = 'IN_PROGRESS',
-  RESOLVED = 'RESOLVED',
   CLOSED = 'CLOSED',
-  REOPENED = 'REOPENED',
 }
 
 export enum TicketSeverity {

@@ -39,9 +39,11 @@ const Dashboard = () => {
   useEffect(() => {
     if (tickets.length > 0) {
       const totalTickets = tickets.length
+      const draftTickets = tickets.filter(t => t.status === TicketStatus.DRAFT).length
+      const reviewTickets = tickets.filter(t => t.status === TicketStatus.REVIEW).length
+      const pendingTickets = tickets.filter(t => t.status === TicketStatus.PENDING).length
       const openTickets = tickets.filter(t => t.status === TicketStatus.OPEN).length
-      const inProgressTickets = tickets.filter(t => t.status === TicketStatus.IN_PROGRESS).length
-      const resolvedTickets = tickets.filter(t => t.status === TicketStatus.RESOLVED || t.status === TicketStatus.CLOSED).length
+      const closedTickets = tickets.filter(t => t.status === TicketStatus.CLOSED).length
       
       const severityCounts = tickets.reduce((acc, ticket) => {
         const severity = ticket.severity
@@ -62,8 +64,8 @@ const Dashboard = () => {
       setStats({
         totalTickets,
         openTickets,
-        inProgressTickets,
-        resolvedTickets,
+        inProgressTickets: pendingTickets, // Map pending to in-progress for display
+        resolvedTickets: closedTickets, // Map closed to resolved for display
         avgResolutionTime: 2.5, // Mock average
         ticketsByPriority: severityCounts,
         ticketsByCategory: {},

@@ -84,7 +84,7 @@ export class TicketsController {
     @Body(ValidationPipe) updateTicketDto: UpdateTicketDto,
     @Request() req,
   ) {
-    return this.ticketsService.update(id, updateTicketDto, req.user.id);
+    return this.ticketsService.update(id, updateTicketDto, req.user.id, req.user.role);
   }
 
   @Delete(':id')
@@ -142,5 +142,21 @@ export class TicketsController {
       ...filters,
       createdById: req.user.id,
     });
+  }
+
+  @Patch(':id/approve')
+  @Roles([UserRole.MANAGER])
+  @ApiOperation({ summary: 'Approve ticket without changes (Manager only)' })
+  @ApiParam({ name: 'id', description: 'Ticket UUID' })
+  @ApiResponse({ status: 200, description: 'Ticket approved successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid ticket state or permissions' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Manager role required' })
+  async approveTicket(
+    @Param('id') id: string,
+    @Request() req,
+  ) {
+    return this.ticketsService.approveTicket(id, req.user.id);
   }
 }

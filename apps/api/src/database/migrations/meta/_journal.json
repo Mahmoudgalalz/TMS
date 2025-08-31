@@ -22,6 +22,13 @@
       "when": 1756507947965,
       "tag": "0002_goofy_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1756643319492,
+      "tag": "0003_mixed_sugar_man",
+      "breakpoints": true
     }
   ]
 }

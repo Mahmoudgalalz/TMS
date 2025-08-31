@@ -3,6 +3,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { users, User, NewUser } from '../../database/schema';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
@@ -30,11 +31,16 @@ export class UsersService {
   }
 
   async create(userData: NewUser): Promise<User> {
-    const result = await this.db.insert(users).values(userData).returning();
+    const hashedPassword = await bcrypt.hash(userData.password, 12);
+    const result = await this.db.insert(users).values({ ...userData, password: hashedPassword }).returning();
     return result[0];
   }
 
   async update(id: string, userData: Partial<NewUser>): Promise<User> {
+    if (userData.password) {
+      const hashedPassword = await bcrypt.hash(userData.password, 12);
+      userData.password = hashedPassword;
+    }
     const result = await this.db
       .update(users)
       .set({ ...userData, updatedAt: new Date() })

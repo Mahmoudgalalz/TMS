@@ -233,9 +233,9 @@ export class CsvService {
 
       // Business rules for automated updates
       if (daysSinceCreated > 7 && ticket.status === TicketStatus.OPEN) {
-        newStatus = TicketStatus.IN_PROGRESS;
-      } else if (daysSinceCreated > 14 && ticket.status === TicketStatus.IN_PROGRESS) {
-        newStatus = TicketStatus.RESOLVED;
+        newStatus = TicketStatus.CLOSED;
+      } else if (daysSinceCreated > 14 && ticket.status === TicketStatus.PENDING) {
+        newStatus = TicketStatus.OPEN;
       }
 
       if (newStatus && this.isValidStatusTransition(ticket.status as TicketStatus, newStatus)) {
@@ -292,12 +292,11 @@ export class CsvService {
 
   private isValidStatusTransition(currentStatus: TicketStatus, newStatus: TicketStatus): boolean {
     const validTransitions: Record<TicketStatus, TicketStatus[]> = {
-      [TicketStatus.DRAFT]: [TicketStatus.OPEN],
-      [TicketStatus.OPEN]: [TicketStatus.IN_PROGRESS, TicketStatus.CLOSED],
-      [TicketStatus.IN_PROGRESS]: [TicketStatus.OPEN, TicketStatus.RESOLVED, TicketStatus.CLOSED],
-      [TicketStatus.RESOLVED]: [TicketStatus.CLOSED, TicketStatus.REOPENED],
-      [TicketStatus.CLOSED]: [TicketStatus.REOPENED],
-      [TicketStatus.REOPENED]: [TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED, TicketStatus.CLOSED],
+      [TicketStatus.DRAFT]: [TicketStatus.REVIEW, TicketStatus.PENDING, TicketStatus.OPEN],
+      [TicketStatus.REVIEW]: [TicketStatus.DRAFT, TicketStatus.PENDING, TicketStatus.OPEN, TicketStatus.CLOSED],
+      [TicketStatus.PENDING]: [TicketStatus.DRAFT, TicketStatus.REVIEW, TicketStatus.OPEN, TicketStatus.CLOSED],
+      [TicketStatus.OPEN]: [TicketStatus.PENDING, TicketStatus.CLOSED],
+      [TicketStatus.CLOSED]: [TicketStatus.OPEN],
     };
 
     return validTransitions[currentStatus]?.includes(newStatus) || false;
