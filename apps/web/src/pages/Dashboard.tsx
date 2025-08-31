@@ -39,8 +39,6 @@ const Dashboard = () => {
   useEffect(() => {
     if (tickets.length > 0) {
       const totalTickets = tickets.length
-      const draftTickets = tickets.filter(t => t.status === TicketStatus.DRAFT).length
-      const reviewTickets = tickets.filter(t => t.status === TicketStatus.REVIEW).length
       const pendingTickets = tickets.filter(t => t.status === TicketStatus.PENDING).length
       const openTickets = tickets.filter(t => t.status === TicketStatus.OPEN).length
       const closedTickets = tickets.filter(t => t.status === TicketStatus.CLOSED).length

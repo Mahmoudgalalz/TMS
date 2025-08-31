@@ -47,10 +47,9 @@ export class CsvService {
     
     if (options.status) {
       conditions.push(eq(tickets.status, options.status));
-    }
-    
-    if (!options.includeResolved) {
-      conditions.push(eq(tickets.status, TicketStatus.OPEN));
+    } else {
+      // Default: export all PENDING tickets for external system processing
+      conditions.push(eq(tickets.status, TicketStatus.PENDING));
     }
 
     // Query tickets with user information

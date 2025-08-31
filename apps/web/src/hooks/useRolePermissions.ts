@@ -101,13 +101,15 @@ export const useRolePermissions = () => {
   }
 
   const canDeleteTicket = (ticket: Ticket) => {
-    // Only Managers can delete tickets
-    return isManager
+    // Only allow deletion before Pending state
+    const canDelete = user?.role === 'associate' || user?.role === 'manager'
+    const isBeforePending = ticket.status !== 'PENDING' && ticket.status !== 'OPEN' && ticket.status !== 'CLOSED'
+    return canDelete && isBeforePending
   }
 
   const canViewTicketHistory = (ticket: Ticket) => {
-    // Both roles can view history
-    return isAssociate || isManager
+    const canView = user?.role === 'associate' || user?.role === 'manager'
+    return canView && !!ticket.id
   }
 
   const getAvailableStatuses = (ticket: Ticket) => {

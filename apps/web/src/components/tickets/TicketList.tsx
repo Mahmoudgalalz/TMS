@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTicketsStore } from '../../stores/tickets'
-import { useAuthStore } from '../../stores/auth'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,7 +10,6 @@ import { formatDate, getStatusColor, getPriorityColor } from '@/lib/utils'
 
 const TicketList = () => {
   const { tickets, loading, fetchTickets, filters, setFilters } = useTicketsStore()
-  const { user } = useAuthStore()
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -24,12 +22,7 @@ const TicketList = () => {
     fetchTickets({ ...filters, search: searchTerm })
   }
 
-  const filteredTickets = tickets.filter(ticket => {
-    if (user?.role === 'associate') {
-      return ticket.createdById === user.id
-    }
-    return true
-  })
+  const filteredTickets = tickets
 
   if (loading) {
     return (

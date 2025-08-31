@@ -6,7 +6,8 @@ import {
   Plus,
   BarChart3,
   FileDown,
-  FileUp
+  FileUp,
+  Archive
 } from 'lucide-react'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
@@ -16,6 +17,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Tickets', href: '/tickets', icon: Ticket },
   { name: 'New Ticket', href: '/tickets/new', icon: Plus },
+  { name: 'Imported Tickets', href: '/imported-tickets', icon: Archive },
 ]
 
 const managerNavigation = [

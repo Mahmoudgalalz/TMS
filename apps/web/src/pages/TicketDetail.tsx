@@ -5,6 +5,8 @@ import { TicketStatus, TicketSeverity } from '@service-ticket/types'
 import { ticketsApi } from '../services/api'
 import { useUIStore } from '../stores/ui'
 import { useRolePermissions } from '../hooks/useRolePermissions'
+import { useAuthStore } from '../stores/auth'
+import ManagerTicketActions from '../components/tickets/ManagerTicketActions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +30,7 @@ const TicketDetail = () => {
   const { addNotification } = useUIStore()
   const permissions = useRolePermissions()
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
 
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState({
@@ -358,6 +361,14 @@ const TicketDetail = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Manager Actions */}
+      {user?.role === 'manager' && (
+        <ManagerTicketActions 
+          ticket={ticket} 
+          onUpdate={() => queryClient.invalidateQueries({ queryKey: ['ticket', id] })}
+        />
+      )}
     </div>
   )
 }

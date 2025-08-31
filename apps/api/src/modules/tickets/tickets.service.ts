@@ -217,8 +217,9 @@ export class TicketsService {
       throw new BadRequestException('Managers cannot approve tickets they created');
     }
     
-    if (existingTicket.status !== TicketStatus.DRAFT) {
-      throw new BadRequestException('Only tickets in Draft status can be approved');
+    // Managers can approve tickets in Draft or Review status
+    if (existingTicket.status !== TicketStatus.DRAFT && existingTicket.status !== TicketStatus.REVIEW) {
+      throw new BadRequestException('Only tickets in Draft or Review status can be approved');
     }
 
     // Approve ticket by changing status to PENDING
@@ -248,6 +249,11 @@ export class TicketsService {
 
   async remove(id: string, deletedById: string, reason?: string) {
     const ticket = await this.findOne(id);
+
+    // Only allow soft delete before Pending state
+    if (ticket.status === TicketStatus.PENDING || ticket.status === TicketStatus.OPEN || ticket.status === TicketStatus.CLOSED) {
+      throw new BadRequestException('Cannot delete tickets in Pending, Open, or Closed status');
+    }
 
     await this.db
       .update(tickets)
@@ -346,15 +352,19 @@ export class TicketsService {
 
     // Manager permissions
     if (isManager) {
-      // Managers cannot review tickets they created
-      if (isTicketCreator && updateDto.status && existingTicket.status === TicketStatus.DRAFT) {
-        throw new BadRequestException('Managers cannot review tickets they created');
+      // Managers cannot edit tickets they created
+      if (isTicketCreator) {
+        throw new BadRequestException('Managers cannot edit tickets they created');
       }
 
-      // Managers can only review tickets in DRAFT status
-      if (updateDto.status && existingTicket.status !== TicketStatus.DRAFT && 
-          (updateDto.status === TicketStatus.PENDING || updateDto.status === TicketStatus.REVIEW)) {
-        throw new BadRequestException('Managers can only review tickets in Draft status');
+      // Managers can only change severity, not other fields directly
+      if (updateDto.title || updateDto.description || updateDto.assignedToId || updateDto.dueDate) {
+        throw new BadRequestException('Managers can only change ticket severity');
+      }
+
+      // Managers cannot directly change status (only through severity change or approval)
+      if (updateDto.status) {
+        throw new BadRequestException('Managers cannot directly change ticket status');
       }
 
       // Validate severity change requirements
@@ -363,17 +373,8 @@ export class TicketsService {
           throw new BadRequestException('Severity change reason is mandatory for Managers');
         }
         
-        // Determine new status based on severity change
-        const oldSeverityLevel = this.getSeverityLevel(existingTicket.severity);
-        const newSeverityLevel = this.getSeverityLevel(updateDto.severity);
-        
-        if (newSeverityLevel < oldSeverityLevel) {
-          // Severity lowered -> PENDING
-          updateDto.status = TicketStatus.PENDING;
-        } else if (newSeverityLevel > oldSeverityLevel) {
-          // Severity increased -> REVIEW (escalate to Associate)
-          updateDto.status = TicketStatus.REVIEW;
-        }
+        // Any severity change -> REVIEW (requires Associate re-evaluation)
+        updateDto.status = TicketStatus.REVIEW;
       }
     }
   }

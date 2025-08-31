@@ -8,6 +8,7 @@ import TicketForm from './components/tickets/TicketForm'
 import TicketDetail from './pages/TicketDetail'
 import CSVExport from './pages/CSVExport'
 import CSVImport from './pages/CSVImport'
+import ImportedTickets from './pages/ImportedTickets'
 import Analytics from './pages/Analytics'
 import Users from './pages/Users'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -27,6 +28,7 @@ function App() {
           <Route path="tickets/:id/edit" element={<TicketForm />} />
           <Route path="csv/export" element={<CSVExport />} />
           <Route path="csv/import" element={<CSVImport />} />
+          <Route path="imported-tickets" element={<ImportedTickets />} />
           <Route path="users" element={<Users />} />
           <Route path="users/new" element={<Users />} />
           <Route path="users/:id/edit" element={<Users />} />

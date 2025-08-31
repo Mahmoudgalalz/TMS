@@ -26,6 +26,7 @@ interface TicketsState {
   createTicket: (data: CreateTicketDto) => Promise<Ticket>
   updateTicket: (id: string, data: UpdateTicketDto) => Promise<Ticket>
   deleteTicket: (id: string) => Promise<void>
+  approveTicket: (id: string) => Promise<Ticket>
   setFilters: (filters: any) => void
   clearError: () => void
   setCurrentTicket: (ticket: Ticket | null) => void
@@ -148,6 +149,30 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
     } catch (error: any) {
       set({ 
         error: error.response?.data?.message || 'Failed to delete ticket',
+        loading: false 
+      })
+      throw error
+    }
+  },
+
+  approveTicket: async (id: string) => {
+    set({ loading: true, error: null })
+    try {
+      const response = await api.post(`/tickets/${id}/approve`)
+      const approvedTicket = response.data
+      
+      set(state => ({
+        tickets: state.tickets.map(ticket => 
+          ticket.id === id ? approvedTicket : ticket
+        ),
+        currentTicket: state.currentTicket?.id === id ? approvedTicket : state.currentTicket,
+        loading: false
+      }))
+      
+      return approvedTicket
+    } catch (error: any) {
+      set({ 
+        error: error.response?.data?.message || 'Failed to approve ticket',
         loading: false 
       })
       throw error

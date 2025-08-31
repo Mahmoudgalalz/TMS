@@ -1,11 +1,9 @@
 import axios from 'axios'
-import { 
-  CreateTicketDto, 
-  UpdateTicketDto, 
-  CreateCommentDto, 
+import {
   Ticket,
-  User,
-  Comment
+  CreateTicketDto,
+  UpdateTicketDto,
+  User
 } from '@service-ticket/types'
 
 interface TicketQueryParams {

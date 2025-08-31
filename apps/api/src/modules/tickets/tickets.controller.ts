@@ -103,6 +103,22 @@ export class TicketsController {
     return this.ticketsService.remove(id, req.user.id, reason);
   }
 
+  @Post(':id/approve')
+  @Roles([UserRole.MANAGER])
+  @ApiOperation({ summary: 'Approve ticket (Manager only)' })
+  @ApiParam({ name: 'id', description: 'Ticket UUID' })
+  @ApiResponse({ status: 200, description: 'Ticket approved successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid ticket status for approval' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Manager role required' })
+  async approve(
+    @Param('id') id: string,
+    @Request() req,
+  ) {
+    return this.ticketsService.approveTicket(id, req.user.id);
+  }
+
   @Get(':id/history')
   @Roles([UserRole.ASSOCIATE, UserRole.MANAGER])
   @ApiOperation({ summary: 'Get ticket history by ticket ID' })
