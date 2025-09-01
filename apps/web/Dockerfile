@@ -22,14 +22,18 @@ RUN pnpm --filter @service-ticket/config build
 
 # Copy web source code
 COPY apps/web/src/ ./apps/web/src/
-COPY apps/web/public ./apps/web/public/
 COPY apps/web/*.json apps/web/*.js apps/web/*.ts apps/web/*.html apps/web/nginx.conf ./apps/web/
+
+# Create public directory and copy if it has content
+RUN mkdir -p ./apps/web/public
+COPY apps/web/public/ ./apps/web/public/
 
 # Build the application
 RUN pnpm --filter web build
 
 # Production stage with nginx
 FROM nginx:alpine
+ENV VITE_API_URL="http://3.86.233.213:3001/api/v1"
 COPY --from=0 /app/apps/web/dist /usr/share/nginx/html
 COPY --from=0 /app/apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 
