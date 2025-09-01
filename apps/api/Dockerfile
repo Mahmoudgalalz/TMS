@@ -10,6 +10,7 @@ WORKDIR /app
 
 # Copy package files from root context
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY turbo.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/ ./packages/
 
@@ -23,9 +24,6 @@ RUN pnpm build --filter=@service-ticket/types --filter=@service-ticket/config
 COPY apps/api/src/ ./apps/api/src/
 COPY apps/api/drizzle.config.ts apps/api/tsconfig.json ./apps/api/
 COPY apps/api/script.sh ./apps/api/
-
-# Copy turbo.json for monorepo support
-COPY turbo.json ./
 
 # Make script executable
 RUN chmod +x /app/apps/api/script.sh
