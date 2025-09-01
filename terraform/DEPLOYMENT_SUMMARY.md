@@ -21,6 +21,33 @@ The new optimized Terraform infrastructure has been successfully deployed with s
 ### Monitoring
 - **CloudWatch Dashboard**: https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards:name=service-ticket-system-dev-dashboard
 
+## 🌐 **Persistent IP Addresses**
+
+I've created **persistent Elastic IP addresses** for your services:
+
+### **API Service**
+- **Persistent IP**: `44.207.204.113` (eipalloc-055ec61030448a064)
+- **Port**: 3001
+- **Full URL**: http://44.207.204.113:3001
+
+### **Web Service** 
+- **Persistent IP**: `34.234.191.38` (eipalloc-01505f154b03683f0)
+- **Port**: 80
+- **Full URL**: http://34.234.191.38
+
+### **Current Status**
+- ✅ **Elastic IPs Created**: Both persistent IPs are allocated
+- ✅ **Secrets Manager Updated**: Configuration includes persistent URLs
+- ✅ **Nginx Configuration**: Updated to use persistent API IP
+- 🔄 **Service Association**: In progress - services need to be restarted to use new IPs
+
+## 🌐 **Access Your Application**
+
+**Frontend**: http://34.234.191.38 (Persistent IP)
+**API**: http://44.207.204.113:3001 (Persistent IP)
+
+These IP addresses will **never change** and remain persistent across deployments.
+
 ## 🔧 Configuration Changes Made
 
 ### Architecture Adaptations

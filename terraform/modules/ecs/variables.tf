@@ -94,6 +94,18 @@ variable "scale_up_cooldown" {
   default     = 300
 }
 
+variable "api_eip_allocation_id" {
+  description = "Allocation ID for API Elastic IP"
+  type        = string
+  default     = ""
+}
+
+variable "web_eip_allocation_id" {
+  description = "Allocation ID for Web Elastic IP"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

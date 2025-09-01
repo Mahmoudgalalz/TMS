@@ -96,6 +96,13 @@ module "ecr" {
   tags = local.common_tags
 }
 
+module "elastic_ips" {
+  source = "./modules/elastic-ip"
+  
+  project_name = var.project_name
+  environment  = var.environment
+}
+
 module "ecs" {
   source = "./modules/ecs"
   
@@ -109,6 +116,10 @@ module "ecs" {
   ecs_security_group_id = module.networking.ecs_security_group_id
   
   ecr_repositories = module.ecr.repository_urls
+  
+  # Elastic IPs
+  api_eip_allocation_id = module.elastic_ips.api_eip_id
+  web_eip_allocation_id = module.elastic_ips.web_eip_id
   
   # Database connection
   database_endpoint = module.database.cluster_endpoint

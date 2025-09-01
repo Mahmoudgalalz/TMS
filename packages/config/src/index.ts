@@ -21,7 +21,7 @@ export const JWT_CONFIG = {
 
 // Helper function to parse CORS origins from environment variable
 const parseCorsOrigins = (origins?: string): string | ((origin: string, callback: (err: Error | null, allow?: boolean) => void) => void) => {
-  if (!origins) return 'http://localhost:5173';
+  if (!origins) return 'http://34.234.191.38';
   
   // If it contains comma, split into array and return function for dynamic origin checking
   if (origins.includes(',')) {
@@ -55,7 +55,7 @@ export const AI_CONFIG = {
 export const WEBSOCKET_CONFIG = {
   PORT: process.env.WS_PORT || 3002,
   CORS: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: process.env.CORS_ORIGIN || 'http://34.234.191.38',
     credentials: true,
   },
 };
@@ -86,7 +86,7 @@ export const APP_CONFIG = {
   port: parseInt(process.env.PORT || '3001'),
   nodeEnv: process.env.NODE_ENV || 'development',
   apiPrefix: '/api/v1',
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  corsOrigin: process.env.CORS_ORIGIN || 'http://34.234.191.38',
   logLevel: process.env.LOG_LEVEL || 'info',
 };
 

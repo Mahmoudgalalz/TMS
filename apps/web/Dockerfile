@@ -29,7 +29,7 @@ RUN pnpm --filter web build
 
 # Production stage with nginx
 FROM nginx:alpine
-ENV VITE_API_URL="http://3.86.233.213:3001/api/v1"
+ENV VITE_API_URL="http://44.207.204.113:3001/api/v1"
 COPY --from=0 /app/apps/web/dist /usr/share/nginx/html
 COPY --from=0 /app/apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 
