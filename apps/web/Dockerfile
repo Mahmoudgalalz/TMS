@@ -7,20 +7,23 @@ RUN npm install -g pnpm@9.0.0
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files from root context
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY turbo.json ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/ ./packages/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
-
 # Build shared packages first
 RUN pnpm --filter @service-ticket/types build
 RUN pnpm --filter @service-ticket/config build
+
+# Copy web source code
+COPY apps/web/src/ ./apps/web/src/
+COPY apps/web/public/ ./apps/web/public/
+COPY apps/web/*.json apps/web/*.js apps/web/*.ts apps/web/*.html apps/web/nginx.conf ./apps/web/
 
 # Build the application
 RUN pnpm --filter web build

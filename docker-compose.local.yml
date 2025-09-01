@@ -71,8 +71,8 @@ services:
   # Web Frontend
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./apps/web/Dockerfile
     container_name: service-tickets-web
     restart: unless-stopped
     env_file:
