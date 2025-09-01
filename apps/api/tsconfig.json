@@ -16,6 +16,10 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@service-ticket/types": ["../../packages/types/src/index.ts"],
+      "@service-ticket/config": ["../../packages/config/src/index.ts"]
+    }
   }
 }

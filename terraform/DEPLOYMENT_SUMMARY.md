@@ -64,17 +64,19 @@ aws secretsmanager update-secret --secret-id service-ticket-system-dev-app-secre
   "DB_PORT": "5432",
   "DB_NAME": "service_tickets_dev",
   "DB_USERNAME": "postgres",
-  "DB_PASSWORD": "[auto-generated]",
-  "REDIS_URL": "redis://service-ticket-system-dev-redis-r0gmvv.serverless.use1.cache.amazonaws.com:6379",
-  "JWT_SECRET": "[auto-generated]",
-  "JWT_REFRESH_SECRET": "[auto-generated]",
-  "CLOUDFLARE_API_TOKEN": "your-token-here",
-  "CLOUDFLARE_ZONE_ID": "your-zone-id-here",
+  "UPLOAD_MAX_SIZE": "10485760",
+  "UPLOAD_ALLOWED_TYPES": "image/jpeg,image/png,application/pdf,text/csv",
+  "CORS_ORIGIN": "http://44.192.107.86",
+  "QUEUE_REDIS_URL": "redis://service-ticket-system-dev-redis-r0gmvv.serverless.use1.cache.amazonaws.com:6379",
+  "CLOUDFLARE_ACCOUNT_ID": "3cce5a88886b46f56d9ff989b715a588",
+  "CLOUDFLARE_API_TOKEN": "3cce5a88886b46f56d9ff989b715a588",
+  "AI_SECRET": "ZvtrfcgYd8UdUlYXfxZV-5tyWD5CHQTYETQRhP-U",
   "SMTP_HOST": "your-smtp-host",
   "SMTP_PORT": "587",
   "SMTP_USER": "your-smtp-user",
   "SMTP_PASS": "your-smtp-password",
-  "SMTP_FROM": "your-from-email"
+  "SMTP_FROM": "your-from-email",
+  ""
 }'
 ```
 

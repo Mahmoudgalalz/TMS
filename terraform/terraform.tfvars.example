@@ -1,72 +1,23 @@
-# Terraform Variables Template for Service Ticket Management System
-# Copy this file to terraform.tfvars and update with your actual values
-# NEVER commit terraform.tfvars to version control
+# AWS Configuration
+aws_region = "us-east-1"
 
-# General Configuration
+# Project Configuration
 project_name = "service-ticket-system"
 environment  = "dev"
-aws_region   = "us-east-1"
 
-# Domain Configuration (optional - leave empty if not using custom domain)
-domain_name = ""
-
-# Networking Configuration
+# Network Configuration
 vpc_cidr = "10.0.0.0/16"
 
 # Database Configuration
 db_master_username = "postgres"
-db_name           = "service_tickets"
-db_min_capacity   = 0
-db_max_capacity   = 15
-db_auto_pause     = false
+db_name           = "service_tickets_dev"
 
-# Cache Configuration
-redis_node_type = "cache.t3.micro"
+# ECR Configuration
+ecr_repositories = ["api", "web"]
 
-# Monitoring Configuration
-notification_email = "your-email@example.com"
-
-# AWS Secrets Manager Configuration
-# Leave these empty for auto-generation or provide your own values
-# These will be securely stored in AWS Secrets Manager
-
-# Database password (leave empty for auto-generation)
-db_master_password = ""
-
-# JWT secret (leave empty for auto-generation)
-jwt_secret = ""
-
-# Redis password (leave empty for auto-generation)
-redis_password = ""
-
-# SMTP password for email notifications
-smtp_password = ""
-
-# Cloudflare API token
-cloudflare_token = ""
-
-# Application encryption key (leave empty for auto-generation)
-encryption_key = ""
-
-# Webhook secret for external integrations
-webhook_secret = ""
-
-# General API key for external services
-api_key = ""
-
-# Cloudflare Account ID
-cloudflare_account_id = ""
-
-# AI service secret key
-ai_secret = ""
-
-# CORS Configuration (supports single URL or comma-separated list)
-cors_origin = "https://your-frontend-domain.com,https://your-alb-url.us-east-1.elb.amazonaws.com"
-
-# INSTRUCTIONS:
-# 1. Copy this file: cp terraform.tfvars.example terraform.tfvars
-# 2. Update configuration values (non-secret values)
-# 3. For secrets: either leave empty for auto-generation or provide your own
-# 4. Secrets will be automatically stored in AWS Secrets Manager
-# 5. ECS tasks will retrieve secrets at runtime from Secrets Manager
-# 6. Ensure terraform.tfvars is in .gitignore (already configured)
+# Auto Scaling Configuration
+min_capacity             = 0
+max_capacity             = 10
+target_cpu_utilization   = 70
+scale_down_cooldown      = 300
+scale_up_cooldown        = 300

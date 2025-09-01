@@ -5,9 +5,13 @@ data "aws_region" "current" {}
 resource "aws_ecs_cluster" "main" {
   name = "${var.name_prefix}-cluster"
 
-  setting {
-    name  = "containerInsights"
-    value = "enabled"
+  configuration {
+    execute_command_configuration {
+      logging = "OVERRIDE"
+      log_configuration {
+        cloud_watch_log_group_name = aws_cloudwatch_log_group.ecs.name
+      }
+    }
   }
 
   tags = merge(var.tags, {
@@ -28,15 +32,18 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   }
 }
 
-# CloudWatch Log Groups
-resource "aws_cloudwatch_log_group" "api" {
-  name              = "/ecs/${var.name_prefix}/api"
-  retention_in_days = var.log_retention_days
+# CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "ecs" {
+  name              = "/ecs/${var.name_prefix}"
+  retention_in_days = 7
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-api-logs"
+    Name = "${var.name_prefix}-ecs-logs"
   })
 }
+
+# Note: ALB creation is restricted in this AWS account
+# Services will be accessed directly via public IPs
 
 # IAM Role for ECS Task Execution
 resource "aws_iam_role" "ecs_task_execution" {
@@ -65,10 +72,10 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# Additional policy for Secrets Manager access
-resource "aws_iam_role_policy" "ecs_secrets_access" {
-  name  = "${var.name_prefix}-ecs-secrets-access"
-  role  = aws_iam_role.ecs_task_execution.id
+# IAM Policy for Secrets Manager access
+resource "aws_iam_role_policy" "ecs_secrets" {
+  name = "${var.name_prefix}-ecs-secrets-policy"
+  role = aws_iam_role.ecs_task_execution.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -78,11 +85,7 @@ resource "aws_iam_role_policy" "ecs_secrets_access" {
         Action = [
           "secretsmanager:GetSecretValue"
         ]
-        Resource = compact([
-          var.db_secret_arn,
-          var.jwt_secret_arn,
-          var.app_config_secret_arn
-        ])
+        Resource = [var.secrets_arn]
       }
     ]
   })
@@ -110,42 +113,20 @@ resource "aws_iam_role" "ecs_task" {
   })
 }
 
-# IAM Policy for ECS Tasks (access to secrets, S3, etc.)
-resource "aws_iam_role_policy" "ecs_task" {
-  name = "${var.name_prefix}-ecs-task-policy"
-  role = aws_iam_role.ecs_task.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetSecretValue",
-          "ssm:GetParameter",
-          "ssm:GetParameters",
-          "ssm:GetParametersByPath"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-# API Task Definition
+# ECS Task Definitions
 resource "aws_ecs_task_definition" "api" {
   family                   = "${var.name_prefix}-api"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = var.api_cpu
-  memory                   = var.api_memory
+  cpu                      = 256
+  memory                   = 512
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
   task_role_arn           = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
       name  = "api"
-      image = "${var.api_repository_url}:latest"
+      image = "${var.ecr_repositories["api"]}:latest"
       
       portMappings = [
         {
@@ -153,7 +134,7 @@ resource "aws_ecs_task_definition" "api" {
           protocol      = "tcp"
         }
       ]
-
+      
       environment = [
         {
           name  = "NODE_ENV"
@@ -172,88 +153,76 @@ resource "aws_ecs_task_definition" "api" {
           value = "5432"
         },
         {
-          name  = "DB_USERNAME"
-          value = "postgres"
+          name  = "DB_NAME"
+          value = var.database_name
         },
         {
-          name  = "DB_NAME"
-          value = "service_tickets_dev"
+          name  = "DB_USERNAME"
+          value = var.database_username
         },
         {
           name  = "REDIS_HOST"
-          value = var.redis_endpoint
+          value = var.cache_endpoint
         },
         {
           name  = "REDIS_PORT"
           value = "6379"
-        },
-        {
-          name  = "CORS_ORIGIN"
-          value = var.alb_dns_name != "" ? "http://${var.alb_dns_name}" : var.cors_origin
-        },
-        {
-          name  = "JWT_EXPIRES_IN"
-          value = "24h"
-        },
-        {
-          name  = "LOG_LEVEL"
-          value = "info"
-        },
-        {
-          name  = "CLOUDFLARE_ACCOUNT_ID"
-          value = ""
-        },
-        {
-          name  = "CLOUDFLARE_API_TOKEN"
-          value = ""
-        },
-        {
-          name  = "AI_SECRET"
-          value = ""
-        },
-        {
-          name  = "QUEUE_REDIS_URL"
-          value = "redis://:${var.redis_auth_token}@${var.redis_endpoint}:6379"
         }
       ]
-
-      secrets = concat(
-        var.db_secret_arn != "" ? [
-          {
-            name      = "DB_PASSWORD"
-            valueFrom = var.db_secret_arn
-          }
-        ] : [],
-        var.jwt_secret_arn != "" ? [
-          {
-            name      = "JWT_SECRET"
-            valueFrom = var.jwt_secret_arn
-          }
-        ] : [],
-        var.app_config_secret_arn != "" ? [
-          {
-            name      = "APP_CONFIG"
-            valueFrom = var.app_config_secret_arn
-          }
-        ] : []
-      )
-
+      
+      secrets = [
+        {
+          name      = "DB_PASSWORD"
+          valueFrom = "${var.secrets_arn}:DB_PASSWORD::"
+        },
+        {
+          name      = "JWT_SECRET"
+          valueFrom = "${var.secrets_arn}:JWT_SECRET::"
+        },
+        {
+          name      = "JWT_REFRESH_SECRET"
+          valueFrom = "${var.secrets_arn}:JWT_REFRESH_SECRET::"
+        },
+        {
+          name      = "CLOUDFLARE_API_TOKEN"
+          valueFrom = "${var.secrets_arn}:CLOUDFLARE_API_TOKEN::"
+        },
+        {
+          name      = "CLOUDFLARE_ZONE_ID"
+          valueFrom = "${var.secrets_arn}:CLOUDFLARE_ZONE_ID::"
+        },
+        {
+          name      = "SMTP_HOST"
+          valueFrom = "${var.secrets_arn}:SMTP_HOST::"
+        },
+        {
+          name      = "SMTP_PORT"
+          valueFrom = "${var.secrets_arn}:SMTP_PORT::"
+        },
+        {
+          name      = "SMTP_USER"
+          valueFrom = "${var.secrets_arn}:SMTP_USER::"
+        },
+        {
+          name      = "SMTP_PASS"
+          valueFrom = "${var.secrets_arn}:SMTP_PASS::"
+        },
+        {
+          name      = "SMTP_FROM"
+          valueFrom = "${var.secrets_arn}:SMTP_FROM::"
+        }
+      ]
+      
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.api.name
-          awslogs-region        = data.aws_region.current.name
-          awslogs-stream-prefix = "ecs"
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
+          "awslogs-region"        = data.aws_region.current.name
+          "awslogs-stream-prefix" = "api"
         }
       }
-
-      healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:3001/api/v1/health || exit 1"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 60
-      }
+      
+      essential = true
     }
   ])
 
@@ -262,32 +231,64 @@ resource "aws_ecs_task_definition" "api" {
   })
 }
 
+resource "aws_ecs_task_definition" "frontend" {
+  family                   = "${var.name_prefix}-frontend"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn           = aws_iam_role.ecs_task.arn
 
-# API ECS Service
+  container_definitions = jsonencode([
+    {
+      name  = "frontend"
+      image = "${var.ecr_repositories["web"]}:latest"
+      
+      portMappings = [
+        {
+          containerPort = 80
+          protocol      = "tcp"
+        }
+      ]
+      
+      environment = [
+        {
+          name  = "VITE_API_URL"
+          value = "http://localhost:3001/api/v1"
+        }
+      ]
+      
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
+          "awslogs-region"        = data.aws_region.current.name
+          "awslogs-stream-prefix" = "frontend"
+        }
+      }
+      
+      essential = true
+    }
+  ])
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-frontend-task-definition"
+  })
+}
+
+# ECS Services
 resource "aws_ecs_service" "api" {
   name            = "${var.name_prefix}-api"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.api.arn
-  desired_count   = var.api_desired_count
+  desired_count   = 0  # Start with 0 for scale-to-zero
   launch_type     = "FARGATE"
 
-  # Auto-scaling to zero configuration
-  deployment_maximum_percent         = 200
-  deployment_minimum_healthy_percent = 0
-
   network_configuration {
-    subnets          = var.subnet_ids
-    security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
-  }
-
-  dynamic "load_balancer" {
-    for_each = var.alb_target_group_api_arn != null ? [1] : []
-    content {
-      target_group_arn = var.alb_target_group_api_arn
-      container_name   = "api"
-      container_port   = 3000
-    }
+    security_groups  = [var.ecs_security_group_id]
+    subnets          = var.public_subnet_ids
+    assign_public_ip = true
   }
 
   tags = merge(var.tags, {
@@ -295,86 +296,51 @@ resource "aws_ecs_service" "api" {
   })
 }
 
+resource "aws_ecs_service" "frontend" {
+  name            = "${var.name_prefix}-frontend"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.frontend.arn
+  desired_count   = 0  # Start with 0 for scale-to-zero
+  launch_type     = "FARGATE"
 
-# Security Group for ECS Tasks
-resource "aws_security_group" "ecs_tasks" {
-  name_prefix = "${var.name_prefix}-ecs-tasks-"
-  vpc_id      = var.vpc_id
-
-  # HTTP access for frontend
-  ingress {
-    description = "HTTP from Internet"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # API access
-  ingress {
-    description = "API from Internet"
-    from_port   = 3001
-    to_port     = 3001
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  dynamic "ingress" {
-    for_each = var.alb_security_group_id != null ? [1] : []
-    content {
-      description     = "HTTP from ALB"
-      from_port       = 3000
-      to_port         = 3000
-      protocol        = "tcp"
-      security_groups = [var.alb_security_group_id]
-    }
-  }
-
-  ingress {
-    description = "Internal communication"
-    from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    self        = true
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+  network_configuration {
+    security_groups  = [var.ecs_security_group_id]
+    subnets          = var.public_subnet_ids
+    assign_public_ip = true
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-ecs-tasks-sg"
-  })
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-# Service Discovery
-resource "aws_service_discovery_private_dns_namespace" "main" {
-  name        = "${var.name_prefix}.local"
-  description = "Private DNS namespace for ${var.name_prefix}"
-  vpc         = var.vpc_id
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-service-discovery-namespace"
+    Name = "${var.name_prefix}-frontend-service"
   })
 }
 
-# Auto Scaling for API Service
+# Auto Scaling Target
 resource "aws_appautoscaling_target" "api" {
-  max_capacity       = var.api_max_capacity
-  min_capacity       = var.api_min_capacity
+  max_capacity       = var.max_capacity
+  min_capacity       = var.min_capacity
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.api.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-api-autoscaling-target"
+  })
 }
 
-resource "aws_appautoscaling_policy" "api_scale_up" {
+resource "aws_appautoscaling_target" "frontend" {
+  max_capacity       = var.max_capacity
+  min_capacity       = var.min_capacity
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.frontend.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-frontend-autoscaling-target"
+  })
+}
+
+# Auto Scaling Policies
+resource "aws_appautoscaling_policy" "api_up" {
   name               = "${var.name_prefix}-api-scale-up"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.api.resource_id
@@ -385,97 +351,25 @@ resource "aws_appautoscaling_policy" "api_scale_up" {
     predefined_metric_specification {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"
     }
-    target_value       = 70.0
-    scale_in_cooldown  = 300
-    scale_out_cooldown = 60
+    target_value       = var.target_cpu_utilization
+    scale_in_cooldown  = var.scale_down_cooldown
+    scale_out_cooldown = var.scale_up_cooldown
   }
 }
 
+resource "aws_appautoscaling_policy" "frontend_up" {
+  name               = "${var.name_prefix}-frontend-scale-up"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.frontend.resource_id
+  scalable_dimension = aws_appautoscaling_target.frontend.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.frontend.service_namespace
 
-# Frontend Task Definition
-resource "aws_ecs_task_definition" "frontend" {
-  family                   = "${var.name_prefix}-frontend"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "2048"
-  memory                   = "4096"
-  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn           = aws_iam_role.ecs_task.arn
-
-  container_definitions = jsonencode([
-    {
-      name  = "frontend"
-      image = "${var.web_repository_url}:latest"
-      
-      portMappings = [
-        {
-          containerPort = 80
-          protocol      = "tcp"
-        }
-      ]
-
-      environment = [
-        {
-          name  = "VITE_API_URL"
-          value = var.alb_dns_name != "" ? "http://${var.alb_dns_name}/api/v1" : "http://localhost:3001/api/v1"
-        }
-      ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.frontend.name
-          awslogs-region        = data.aws_region.current.name
-          awslogs-stream-prefix = "ecs"
-        }
-      }
-
-      healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 60
-      }
-
-      essential = true
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
     }
-  ])
-
-  depends_on = [aws_iam_role_policy_attachment.ecs_task_execution]
-}
-
-# Frontend Service
-resource "aws_ecs_service" "frontend" {
-  name            = "${var.name_prefix}-frontend"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.frontend.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
-
-  network_configuration {
-    subnets          = var.subnet_ids
-    security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = true
+    target_value       = var.target_cpu_utilization
+    scale_in_cooldown  = var.scale_down_cooldown
+    scale_out_cooldown = var.scale_up_cooldown
   }
-
-  dynamic "load_balancer" {
-    for_each = var.alb_target_group_web_arn != null ? [1] : []
-    content {
-      target_group_arn = var.alb_target_group_web_arn
-      container_name   = "frontend"
-      container_port   = 80
-    }
-  }
-
-  depends_on = [aws_ecs_task_definition.frontend]
 }
-
-# CloudWatch Log Group for Frontend
-resource "aws_cloudwatch_log_group" "frontend" {
-  name              = "/ecs/${var.name_prefix}/frontend"
-  retention_in_days = 7
-
-  tags = var.tags
-}
-

@@ -10,13 +10,8 @@ resource "aws_db_subnet_group" "main" {
 
 # DB Parameter Group
 resource "aws_rds_cluster_parameter_group" "main" {
-  family = "aurora-postgresql13"
+  family = "aurora-postgresql16"
   name   = "${var.name_prefix}-cluster-pg"
-
-  parameter {
-    name  = "shared_preload_libraries"
-    value = "pg_stat_statements"
-  }
 
   parameter {
     name  = "log_statement"
@@ -30,77 +25,6 @@ resource "aws_rds_cluster_parameter_group" "main" {
 
   tags = merge(var.tags, {
     Name = "${var.name_prefix}-cluster-parameter-group"
-  })
-}
-
-# Aurora Serverless v2 Cluster
-resource "aws_rds_cluster" "main" {
-  cluster_identifier      = "${var.name_prefix}-aurora-cluster"
-  engine                 = "aurora-postgresql"
-  engine_mode            = "provisioned"
-  engine_version         = "13.15"
-  database_name          = var.database_name
-  master_username        = var.master_username
-  master_password        = var.master_password
-  
-  # Serverless v2 scaling configuration
-  # Note: Auto-pause is enabled when min_capacity = 0 (requires PostgreSQL 13.15+ or 14.12+ or 15.7+ or 16.3+)
-  serverlessv2_scaling_configuration {
-    max_capacity = var.max_capacity
-    min_capacity = var.auto_pause ? 0 : var.min_capacity
-  }
-
-  # Network configuration
-  db_subnet_group_name   = aws_db_subnet_group.main.name
-  vpc_security_group_ids = var.security_group_ids
-  
-  # Parameter group
-  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.main.name
-
-  # Backup configuration
-  backup_retention_period = var.backup_retention_period
-  preferred_backup_window = "03:00-04:00"
-  preferred_maintenance_window = "sun:04:00-sun:05:00"
-  
-  # Note: Auto-pause is not supported in newer PostgreSQL versions
-  # Using min_capacity of 0 ACU for cost optimization
-  
-  # Security
-  storage_encrypted = true
-  kms_key_id       = aws_kms_key.aurora.arn
-  
-  # Deletion protection
-  deletion_protection = var.deletion_protection
-  skip_final_snapshot = var.skip_final_snapshot
-  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.name_prefix}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
-
-  # Enable logging
-  enabled_cloudwatch_logs_exports = ["postgresql"]
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-aurora-cluster"
-  })
-
-  depends_on = [
-    aws_cloudwatch_log_group.aurora
-  ]
-}
-
-# Aurora Serverless v2 Instance
-resource "aws_rds_cluster_instance" "main" {
-  count              = var.instance_count
-  identifier         = "${var.name_prefix}-aurora-instance-${count.index + 1}"
-  cluster_identifier = aws_rds_cluster.main.id
-  instance_class     = "db.serverless"
-  engine             = aws_rds_cluster.main.engine
-  engine_version     = aws_rds_cluster.main.engine_version
-
-  performance_insights_enabled = true
-  monitoring_interval         = 60
-  monitoring_role_arn        = aws_iam_role.rds_enhanced_monitoring.arn
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-aurora-instance-${count.index + 1}"
   })
 }
 
@@ -119,13 +43,79 @@ resource "aws_kms_alias" "aurora" {
   target_key_id = aws_kms_key.aurora.key_id
 }
 
-# CloudWatch Log Group for Aurora
+# CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "aurora" {
   name              = "/aws/rds/cluster/${var.name_prefix}-aurora-cluster/postgresql"
-  retention_in_days = var.log_retention_days
+  retention_in_days = 7
 
   tags = merge(var.tags, {
     Name = "${var.name_prefix}-aurora-logs"
+  })
+}
+
+# Aurora Serverless v2 Cluster
+resource "aws_rds_cluster" "main" {
+  cluster_identifier     = "${var.name_prefix}-aurora-cluster"
+  engine                 = "aurora-postgresql"
+  engine_version         = "16.1"
+  engine_mode           = "provisioned"
+  database_name         = var.database_name
+  master_username       = var.master_username
+  master_password       = var.master_password
+  
+  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.main.name
+  db_subnet_group_name           = aws_db_subnet_group.main.name
+  vpc_security_group_ids         = var.security_group_ids
+  
+  # Serverless v2 scaling configuration
+  serverlessv2_scaling_configuration {
+    max_capacity = 1.0
+    min_capacity = 0.5
+  }
+  
+  # Backup configuration
+  backup_retention_period = 7
+  preferred_backup_window = "03:00-04:00"
+  
+  # Maintenance configuration
+  preferred_maintenance_window = "sun:04:00-sun:05:00"
+  
+  # Encryption
+  storage_encrypted = true
+  kms_key_id       = aws_kms_key.aurora.arn
+  
+  # Logging
+  enabled_cloudwatch_logs_exports = ["postgresql"]
+  
+  # Deletion protection
+  deletion_protection = false
+  skip_final_snapshot = true
+  
+  # Performance Insights
+  performance_insights_enabled = true
+  performance_insights_kms_key_id = aws_kms_key.aurora.arn
+  
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-aurora-cluster"
+  })
+  
+  depends_on = [aws_cloudwatch_log_group.aurora]
+}
+
+# Aurora Serverless v2 Instance
+resource "aws_rds_cluster_instance" "main" {
+  identifier         = "${var.name_prefix}-aurora-instance-1"
+  cluster_identifier = aws_rds_cluster.main.id
+  instance_class     = "db.serverless"
+  engine             = aws_rds_cluster.main.engine
+  engine_version     = aws_rds_cluster.main.engine_version
+  
+  performance_insights_enabled = true
+  monitoring_interval          = 60
+  monitoring_role_arn         = aws_iam_role.rds_enhanced_monitoring.arn
+  
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-aurora-instance-1"
   })
 }
 
@@ -155,6 +145,3 @@ resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
   role       = aws_iam_role.rds_enhanced_monitoring.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }
-
-# Note: Aurora Serverless v2 handles scaling automatically via serverlessv2_scaling_configuration
-# No additional auto-scaling resources needed

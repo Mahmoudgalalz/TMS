@@ -1,40 +1,36 @@
 variable "name_prefix" {
-  description = "Name prefix for resources"
+  description = "Prefix for resource names"
   type        = string
 }
 
 variable "vpc_id" {
-  description = "VPC ID"
+  description = "ID of the VPC"
   type        = string
 }
 
-variable "subnet_ids" {
-  description = "List of subnet IDs for ECS services"
+variable "public_subnet_ids" {
+  description = "List of public subnet IDs"
   type        = list(string)
 }
 
-variable "alb_target_group_api_arn" {
-  description = "ARN of the ALB target group for API"
-  type        = string
-  default     = null
-}
-
-variable "alb_target_group_web_arn" {
-  description = "ARN of the ALB target group for Web"
-  type        = string
-  default     = null
-}
-
-variable "alb_dns_name" {
-  description = "DNS name of the Application Load Balancer"
-  type        = string
-  default     = ""
+variable "private_subnet_ids" {
+  description = "List of private subnet IDs"
+  type        = list(string)
 }
 
 variable "alb_security_group_id" {
-  description = "Security group ID of the ALB"
+  description = "Security group ID for the ALB"
   type        = string
-  default     = null
+}
+
+variable "ecs_security_group_id" {
+  description = "Security group ID for ECS tasks"
+  type        = string
+}
+
+variable "ecr_repositories" {
+  description = "Map of ECR repository URLs"
+  type        = map(string)
 }
 
 variable "database_endpoint" {
@@ -42,121 +38,60 @@ variable "database_endpoint" {
   type        = string
 }
 
-variable "redis_endpoint" {
-  description = "Redis cluster endpoint"
+variable "database_name" {
+  description = "Database name"
   type        = string
 }
 
-variable "redis_auth_token" {
-  description = "Redis authentication token"
-  type        = string
-  sensitive   = true
-}
-
-variable "api_repository_url" {
-  description = "ECR repository URL for API"
+variable "database_username" {
+  description = "Database username"
   type        = string
 }
 
-variable "web_repository_url" {
-  description = "ECR repository URL for frontend web app"
-  type        = string
-}
-
-
-# Environment variables
-variable "db_password" {
+variable "database_password" {
   description = "Database password"
   type        = string
   sensitive   = true
-  default     = ""
 }
 
-variable "db_name" {
-  description = "Database name"
+variable "cache_endpoint" {
+  description = "Cache endpoint"
   type        = string
-  default     = "service_tickets"
 }
 
-variable "jwt_secret" {
-  description = "JWT secret"
+variable "secrets_arn" {
+  description = "ARN of the Secrets Manager secret"
   type        = string
-  sensitive   = true
 }
 
-
-# Task configuration
-variable "api_cpu" {
-  description = "CPU units for API task (1024 = 1 vCPU)"
-  type        = number
-  default     = 2048
-}
-
-variable "api_memory" {
-  description = "Memory (MB) for API task"
-  type        = number
-  default     = 4096
-}
-
-
-# Service configuration
-variable "api_desired_count" {
-  description = "Desired count for API service"
-  type        = number
-  default     = 1
-}
-
-
-# Auto-scaling configuration
-variable "api_min_capacity" {
-  description = "Minimum capacity for API service auto-scaling"
+variable "min_capacity" {
+  description = "Minimum number of ECS tasks"
   type        = number
   default     = 0
 }
 
-variable "api_max_capacity" {
-  description = "Maximum capacity for API service auto-scaling"
+variable "max_capacity" {
+  description = "Maximum number of ECS tasks"
   type        = number
-  default     = 20
+  default     = 10
 }
 
-
-# Secrets Manager integration
-variable "secrets_access_role_arn" {
-  description = "ARN of the IAM role for accessing secrets"
-  type        = string
-  default     = ""
-}
-
-variable "db_secret_arn" {
-  description = "ARN of the database password secret"
-  type        = string
-  default     = ""
-}
-
-variable "jwt_secret_arn" {
-  description = "ARN of the JWT secret"
-  type        = string
-  default     = ""
-}
-
-variable "app_config_secret_arn" {
-  description = "ARN of the application configuration secret"
-  type        = string
-  default     = ""
-}
-
-
-variable "log_retention_days" {
-  description = "CloudWatch log retention in days"
+variable "target_cpu_utilization" {
+  description = "Target CPU utilization for auto scaling"
   type        = number
-  default     = 7
+  default     = 70
 }
 
-variable "cors_origin" {
-  description = "CORS origin URLs (comma-separated for multiple origins)"
-  type        = string
-  default     = "http://localhost:5173"
+variable "scale_down_cooldown" {
+  description = "Cooldown period for scaling down (seconds)"
+  type        = number
+  default     = 300
+}
+
+variable "scale_up_cooldown" {
+  description = "Cooldown period for scaling up (seconds)"
+  type        = number
+  default     = 300
 }
 
 variable "tags" {

@@ -20,7 +20,7 @@ resource "aws_internet_gateway" "main" {
 
 # Public Subnets
 resource "aws_subnet" "public" {
-  count = min(length(var.availability_zones), 3)
+  count = length(var.availability_zones)
 
   vpc_id                  = aws_vpc.main.id
   cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index)
@@ -35,7 +35,7 @@ resource "aws_subnet" "public" {
 
 # Private Subnets
 resource "aws_subnet" "private" {
-  count = min(length(var.availability_zones), 3)
+  count = length(var.availability_zones)
 
   vpc_id            = aws_vpc.main.id
   cidr_block        = cidrsubnet(var.vpc_cidr, 8, count.index + 10)
@@ -49,7 +49,7 @@ resource "aws_subnet" "private" {
 
 # Elastic IPs for NAT Gateways
 resource "aws_eip" "nat" {
-  count = min(length(var.availability_zones), 3)
+  count = length(var.availability_zones)
 
   domain = "vpc"
   depends_on = [aws_internet_gateway.main]
@@ -61,7 +61,7 @@ resource "aws_eip" "nat" {
 
 # NAT Gateways
 resource "aws_nat_gateway" "main" {
-  count = min(length(var.availability_zones), 3)
+  count = length(var.availability_zones)
 
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
@@ -89,7 +89,7 @@ resource "aws_route_table" "public" {
 
 # Route Tables - Private
 resource "aws_route_table" "private" {
-  count = min(length(var.availability_zones), 3)
+  count = length(var.availability_zones)
 
   vpc_id = aws_vpc.main.id
 
@@ -120,10 +120,10 @@ resource "aws_route_table_association" "private" {
 }
 
 # Security Groups
-# ALB Security Group
 resource "aws_security_group" "alb" {
   name_prefix = "${var.name_prefix}-alb-"
   vpc_id      = aws_vpc.main.id
+  description = "Security group for Application Load Balancer"
 
   ingress {
     description = "HTTP"
@@ -157,25 +157,25 @@ resource "aws_security_group" "alb" {
   }
 }
 
-# ECS Security Group
 resource "aws_security_group" "ecs" {
   name_prefix = "${var.name_prefix}-ecs-"
   vpc_id      = aws_vpc.main.id
+  description = "Security group for ECS tasks"
 
   ingress {
-    description     = "HTTP from ALB"
-    from_port       = 3000
-    to_port         = 3000
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+    description = "HTTP from Internet"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
-    description     = "AI Service from ALB"
-    from_port       = 3001
-    to_port         = 3001
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+    description = "API from Internet"
+    from_port   = 3001
+    to_port     = 3001
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -194,10 +194,10 @@ resource "aws_security_group" "ecs" {
   }
 }
 
-# Database Security Group
 resource "aws_security_group" "database" {
   name_prefix = "${var.name_prefix}-db-"
   vpc_id      = aws_vpc.main.id
+  description = "Security group for Aurora database"
 
   ingress {
     description     = "PostgreSQL from ECS"
@@ -223,10 +223,10 @@ resource "aws_security_group" "database" {
   }
 }
 
-# Cache Security Group
 resource "aws_security_group" "cache" {
   name_prefix = "${var.name_prefix}-cache-"
   vpc_id      = aws_vpc.main.id
+  description = "Security group for ElastiCache"
 
   ingress {
     description     = "Redis from ECS"

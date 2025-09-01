@@ -1,40 +1,32 @@
 output "cluster_name" {
-  description = "ECS cluster name"
+  description = "Name of the ECS cluster"
   value       = aws_ecs_cluster.main.name
 }
 
-output "cluster_id" {
-  description = "ECS cluster ID"
-  value       = aws_ecs_cluster.main.id
-}
-
 output "cluster_arn" {
-  description = "ECS cluster ARN"
+  description = "ARN of the ECS cluster"
   value       = aws_ecs_cluster.main.arn
 }
 
 output "service_names" {
-  description = "ECS service names"
+  description = "Map of service names"
   value = {
     api      = aws_ecs_service.api.name
     frontend = aws_ecs_service.frontend.name
   }
 }
 
-output "task_definition_arns" {
-  description = "ECS task definition ARNs"
-  value = {
-    api      = aws_ecs_task_definition.api.arn
-    frontend = aws_ecs_task_definition.frontend.arn
-  }
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer (not available - ALB restricted)"
+  value       = "not-available-alb-restricted"
 }
 
-output "service_discovery_namespace_id" {
-  description = "Service discovery namespace ID"
-  value       = aws_service_discovery_private_dns_namespace.main.id
+output "alb_zone_id" {
+  description = "Zone ID of the Application Load Balancer (not available - ALB restricted)"
+  value       = "not-available-alb-restricted"
 }
 
-output "ecs_security_group_id" {
-  description = "ECS tasks security group ID"
-  value       = aws_security_group.ecs_tasks.id
+output "alb_arn" {
+  description = "ARN of the Application Load Balancer (not available - ALB restricted)"
+  value       = "not-available-alb-restricted"
 }

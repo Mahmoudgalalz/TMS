@@ -1,34 +1,16 @@
 variable "name_prefix" {
-  description = "Name prefix for resources"
+  description = "Prefix for resource names"
   type        = string
 }
 
 variable "ecs_cluster_name" {
-  description = "ECS cluster name"
+  description = "Name of the ECS cluster"
   type        = string
 }
 
 variable "ecs_service_names" {
-  description = "ECS service names"
-  type = object({
-    api = string
-  })
-}
-
-variable "database_cluster_identifier" {
-  description = "Database cluster identifier"
-  type        = string
-}
-
-variable "alb_arn_suffix" {
-  description = "ALB ARN suffix"
-  type        = string
-  default     = null
-}
-
-variable "notification_email" {
-  description = "Email for notifications"
-  type        = string
+  description = "Map of ECS service names"
+  type        = map(string)
 }
 
 variable "tags" {

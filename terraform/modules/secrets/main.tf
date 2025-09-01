@@ -1,142 +1,53 @@
-# AWS Secrets Manager for Application Secrets
-
-# Database Master Password Secret
-resource "aws_secretsmanager_secret" "db_master_password" {
-  name                    = "${var.name_prefix}-db-master-password"
-  description             = "Database master password for ${var.name_prefix}"
-  recovery_window_in_days = var.recovery_window_days
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-db-master-password"
-    Type = "Database"
-  })
-}
-
-resource "aws_secretsmanager_secret_version" "db_master_password" {
-  secret_id     = aws_secretsmanager_secret.db_master_password.id
-  secret_string = var.db_master_password != "" ? var.db_master_password : random_password.db_master_password[0].result
-}
-
-# JWT Secret
-resource "aws_secretsmanager_secret" "jwt_secret" {
-  name                    = "${var.name_prefix}-jwt-secret"
-  description             = "JWT signing secret for ${var.name_prefix}"
-  recovery_window_in_days = var.recovery_window_days
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-jwt-secret"
-    Type = "Application"
-  })
-}
-
-resource "aws_secretsmanager_secret_version" "jwt_secret" {
-  secret_id     = aws_secretsmanager_secret.jwt_secret.id
-  secret_string = var.jwt_secret != "" ? var.jwt_secret : random_password.jwt_secret[0].result
-}
-
-# Application Configuration Secret (JSON format for multiple values)
-resource "aws_secretsmanager_secret" "app_config" {
-  name                    = "${var.name_prefix}-app-config"
-  description             = "Application configuration secrets for ${var.name_prefix}"
-  recovery_window_in_days = var.recovery_window_days
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-app-config"
-    Type = "Application"
-  })
-}
-
-resource "aws_secretsmanager_secret_version" "app_config" {
-  secret_id = aws_secretsmanager_secret.app_config.id
-  secret_string = jsonencode({
-    REDIS_PASSWORD       = var.redis_password != "" ? var.redis_password : random_password.redis_password[0].result
-    SMTP_PASSWORD        = var.smtp_password
-    CLOUDFLARE_TOKEN     = var.cloudflare_token
-    CLOUDFLARE_ACCOUNT_ID = var.cloudflare_account_id
-    AI_SECRET           = var.ai_secret
-    ENCRYPTION_KEY      = var.encryption_key != "" ? var.encryption_key : random_password.encryption_key[0].result
-    WEBHOOK_SECRET      = var.webhook_secret
-    API_KEY             = var.api_key
-  })
-}
-
-# IAM Role for ECS Tasks to Access Secrets
-resource "aws_iam_role" "secrets_access" {
-  name = "${var.name_prefix}-secrets-access-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-secrets-access-role"
-  })
-}
-
-# IAM Policy for Secrets Access
-resource "aws_iam_policy" "secrets_access" {
-  name        = "${var.name_prefix}-secrets-access-policy"
-  description = "Policy to allow ECS tasks to access secrets"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret"
-        ]
-        Resource = [
-          aws_secretsmanager_secret.db_master_password.arn,
-          aws_secretsmanager_secret.jwt_secret.arn,
-          aws_secretsmanager_secret.app_config.arn
-        ]
-      }
-    ]
-  })
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-secrets-access-policy"
-  })
-}
-
-# Attach Policy to Role
-resource "aws_iam_role_policy_attachment" "secrets_access" {
-  role       = aws_iam_role.secrets_access.name
-  policy_arn = aws_iam_policy.secrets_access.arn
-}
-
-# Random password generation for secrets that aren't provided
+# Random password for database
 resource "random_password" "db_master_password" {
-  count   = var.db_master_password == "" ? 1 : 0
   length  = 32
   special = true
 }
 
+# Secrets Manager Secret
+resource "aws_secretsmanager_secret" "app_secrets" {
+  name                    = "${var.name_prefix}-app-secrets"
+  description             = "Application secrets for ${var.name_prefix}"
+  recovery_window_in_days = 7
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-app-secrets"
+  })
+}
+
+# Secrets Manager Secret Version
+resource "aws_secretsmanager_secret_version" "app_secrets" {
+  secret_id = aws_secretsmanager_secret.app_secrets.id
+  secret_string = jsonencode({
+    DB_HOST     = ""  # Will be populated after database creation
+    DB_PORT     = "5432"
+    DB_NAME     = ""  # Will be populated after database creation
+    DB_USERNAME = ""  # Will be populated after database creation
+    DB_PASSWORD = random_password.db_master_password.result
+    REDIS_URL   = ""  # Will be populated after cache creation
+    JWT_SECRET  = random_password.jwt_secret.result
+    JWT_REFRESH_SECRET = random_password.jwt_refresh_secret.result
+    CLOUDFLARE_API_TOKEN = ""  # To be manually set
+    CLOUDFLARE_ZONE_ID = ""    # To be manually set
+    SMTP_HOST = ""             # To be manually set
+    SMTP_PORT = "587"
+    SMTP_USER = ""             # To be manually set
+    SMTP_PASS = ""             # To be manually set
+    SMTP_FROM = ""             # To be manually set
+  })
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}
+
+# Additional random passwords
 resource "random_password" "jwt_secret" {
-  count   = var.jwt_secret == "" ? 1 : 0
   length  = 64
-  special = false
-}
-
-resource "random_password" "redis_password" {
-  count   = var.redis_password == "" ? 1 : 0
-  length  = 32
   special = true
 }
 
-resource "random_password" "encryption_key" {
-  count   = var.encryption_key == "" ? 1 : 0
-  length  = 32
-  special = false
+resource "random_password" "jwt_refresh_secret" {
+  length  = 64
+  special = true
 }
