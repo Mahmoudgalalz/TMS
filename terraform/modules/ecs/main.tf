@@ -1,3 +1,6 @@
+# Data sources
+data "aws_region" "current" {}
+
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "${var.name_prefix}-cluster"
@@ -174,7 +177,7 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "DB_NAME"
-          value = "service_tickets"
+          value = "service_tickets_dev"
         },
         {
           name  = "REDIS_HOST"
@@ -186,7 +189,7 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "CORS_ORIGIN"
-          value = var.cors_origin
+          value = var.alb_dns_name != "" ? "http://${var.alb_dns_name}" : var.cors_origin
         },
         {
           name  = "JWT_EXPIRES_IN"
@@ -298,6 +301,24 @@ resource "aws_security_group" "ecs_tasks" {
   name_prefix = "${var.name_prefix}-ecs-tasks-"
   vpc_id      = var.vpc_id
 
+  # HTTP access for frontend
+  ingress {
+    description = "HTTP from Internet"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # API access
+  ingress {
+    description = "API from Internet"
+    from_port   = 3001
+    to_port     = 3001
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   dynamic "ingress" {
     for_each = var.alb_security_group_id != null ? [1] : []
     content {
@@ -308,7 +329,6 @@ resource "aws_security_group" "ecs_tasks" {
       security_groups = [var.alb_security_group_id]
     }
   }
-
 
   ingress {
     description = "Internal communication"
@@ -397,7 +417,7 @@ resource "aws_ecs_task_definition" "frontend" {
       environment = [
         {
           name  = "VITE_API_URL"
-          value = "http://${aws_ecs_service.api.name}.${var.name_prefix}-cluster.local:3001"
+          value = var.alb_dns_name != "" ? "http://${var.alb_dns_name}/api/v1" : "http://localhost:3001/api/v1"
         }
       ]
 
@@ -439,6 +459,15 @@ resource "aws_ecs_service" "frontend" {
     assign_public_ip = true
   }
 
+  dynamic "load_balancer" {
+    for_each = var.alb_target_group_web_arn != null ? [1] : []
+    content {
+      target_group_arn = var.alb_target_group_web_arn
+      container_name   = "frontend"
+      container_port   = 80
+    }
+  }
+
   depends_on = [aws_ecs_task_definition.frontend]
 }
 
@@ -450,5 +479,3 @@ resource "aws_cloudwatch_log_group" "frontend" {
   tags = var.tags
 }
 
-# Data source for current AWS region
-data "aws_region" "current" {}

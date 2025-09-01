@@ -28,7 +28,7 @@ RUN pnpm --filter web build
 # Production stage with nginx
 FROM nginx:alpine
 COPY --from=0 /app/apps/web/dist /usr/share/nginx/html
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=0 /app/apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port
 EXPOSE 80

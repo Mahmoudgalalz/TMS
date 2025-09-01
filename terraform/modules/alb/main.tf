@@ -41,6 +41,34 @@ resource "aws_lb_target_group" "api" {
   })
 }
 
+# Target Group for Web Frontend
+resource "aws_lb_target_group" "web" {
+  name        = "${var.name_prefix}-web-tg"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 2
+  }
+
+  # Deregistration delay for faster scale-down
+  deregistration_delay = 30
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-web-target-group"
+  })
+}
+
 # Target Group for AI Service - commented out as AI service is not deployed
 # resource "aws_lb_target_group" "ai_service" {
 #   name        = "${var.name_prefix}-ai-service-tg"
@@ -102,7 +130,7 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api.arn
+    target_group_arn = aws_lb_target_group.web.arn
   }
 
   tags = merge(var.tags, {
@@ -120,7 +148,7 @@ resource "aws_lb_listener" "http_dev" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api.arn
+    target_group_arn = aws_lb_target_group.web.arn
   }
 
   tags = merge(var.tags, {

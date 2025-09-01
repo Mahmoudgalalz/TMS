@@ -1,0 +1,23 @@
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Project Configuration
+project_name = "service-ticket-system"
+environment  = "dev"
+
+# Network Configuration
+vpc_cidr = "10.0.0.0/16"
+
+# Database Configuration
+db_master_username = "postgres"
+db_name           = "service_tickets_dev"
+
+# ECR Configuration
+ecr_repositories = ["api", "web"]
+
+# Auto Scaling Configuration
+min_capacity             = 0
+max_capacity             = 10
+target_cpu_utilization   = 70
+scale_down_cooldown      = 300
+scale_up_cooldown        = 300

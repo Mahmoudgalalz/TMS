@@ -131,9 +131,11 @@ module "ecs" {
   vpc_id      = module.networking.vpc_id
   subnet_ids  = module.networking.private_subnet_ids
   
-  # Load balancer - Disabled due to AWS account limitations
+  # Load balancer configuration - Disabled due to ALB restrictions
   alb_target_group_api_arn = null
-  alb_security_group_id    = null
+  alb_target_group_web_arn = null
+  alb_dns_name             = ""
+  alb_security_group_id    = module.networking.alb_security_group_id
   
   # Database and cache
   database_endpoint = module.database.cluster_endpoint

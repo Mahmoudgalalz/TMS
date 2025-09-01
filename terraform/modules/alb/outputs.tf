@@ -23,6 +23,11 @@ output "api_target_group_arn" {
   value       = aws_lb_target_group.api.arn
 }
 
+output "web_target_group_arn" {
+  description = "ARN of the Web target group"
+  value       = aws_lb_target_group.web.arn
+}
+
 # AI service target group output commented out - resource not deployed
 # output "ai_service_target_group_arn" {
 #   description = "ARN of the AI service target group"
