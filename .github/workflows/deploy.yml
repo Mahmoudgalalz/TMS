@@ -14,40 +14,40 @@ env:
   ECS_FRONTEND_SERVICE: service-ticket-system-dev-frontend
 
 jobs:
-  # build-and-deploy-api:
-  #   name: Build and Deploy API
-  #   runs-on: ubuntu-latest
-  #   if: github.ref == 'refs/heads/main'
+  build-and-deploy-api:
+    name: Build and Deploy API
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     
-  #   steps:
-  #   - name: Checkout code
-  #     uses: actions/checkout@v4
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v4
-  #     with:
-  #       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #       aws-region: ${{ env.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
 
-  #   - name: Login to Amazon ECR
-  #     id: login-ecr
-  #     uses: aws-actions/amazon-ecr-login@v2
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
 
-  #   - name: Build and push API Docker image
-  #     run: |
-  #       docker build --platform linux/amd64 -t $ECR_API_REPOSITORY:latest -f apps/api/Dockerfile .
-  #       docker push $ECR_API_REPOSITORY:latest
+    - name: Build and push API Docker image
+      run: |
+        docker build --platform linux/amd64 -t $ECR_API_REPOSITORY:latest -f apps/api/Dockerfile .
+        docker push $ECR_API_REPOSITORY:latest
 
-  #   - name: Scale up and update ECS API service
-  #     run: |
-  #       # Scale up to 1 task if currently at 0
-  #       CURRENT_COUNT=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_API_SERVICE --query 'services[0].desiredCount' --output text)
-  #       if [ "$CURRENT_COUNT" = "0" ]; then
-  #         aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_API_SERVICE --desired-count 1
-  #       fi
-  #       # Force new deployment with latest image
-  #       aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_API_SERVICE --force-new-deployment
+    - name: Scale up and update ECS API service
+      run: |
+        # Scale up to 1 task if currently at 0
+        CURRENT_COUNT=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_API_SERVICE --query 'services[0].desiredCount' --output text)
+        if [ "$CURRENT_COUNT" = "0" ]; then
+          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_API_SERVICE --desired-count 1
+        fi
+        # Force new deployment with latest image
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_API_SERVICE --force-new-deployment
 
   build-and-deploy-frontend:
     name: Build and Deploy Frontend to ECS
