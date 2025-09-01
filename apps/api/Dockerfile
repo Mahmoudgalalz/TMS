@@ -25,6 +25,9 @@ COPY apps/api/src/ ./apps/api/src/
 COPY apps/api/drizzle.config.ts apps/api/tsconfig.json ./apps/api/
 COPY apps/api/script.sh ./apps/api/
 
+# Build the API application
+RUN pnpm build --filter=api
+
 # Make script executable
 RUN chmod +x /app/apps/api/script.sh
 

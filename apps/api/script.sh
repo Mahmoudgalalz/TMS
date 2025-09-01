@@ -30,4 +30,5 @@ pnpm run --filter api db:seed || echo "Seed failed (likely data already exists),
 
 # Start the application
 echo "Starting API server..."
-exec pnpm run dev:api
+cd /app/apps/api
+exec node dist/main
