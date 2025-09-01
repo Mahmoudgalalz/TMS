@@ -16,6 +16,9 @@ COPY packages/ ./packages/
 # Install dependencies
 RUN pnpm install
 
+# Build workspace packages first
+RUN pnpm build --filter=@service-ticket/types --filter=@service-ticket/config
+
 # Copy API source code
 COPY apps/api/src/ ./apps/api/src/
 COPY apps/api/drizzle.config.ts apps/api/tsconfig.json ./apps/api/
