@@ -22,7 +22,7 @@ RUN pnpm --filter @service-ticket/config build
 
 # Copy web source code
 COPY apps/web/src/ ./apps/web/src/
-COPY apps/web/public/ ./apps/web/public/
+COPY apps/web/public ./apps/web/public/
 COPY apps/web/*.json apps/web/*.js apps/web/*.ts apps/web/*.html apps/web/nginx.conf ./apps/web/
 
 # Build the application
