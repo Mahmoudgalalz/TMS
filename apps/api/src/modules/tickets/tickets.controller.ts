@@ -60,6 +60,18 @@ export class TicketsController {
     return this.ticketsService.findAll(filters);
   }
 
+  @Get('imported')
+  @Roles([UserRole.ASSOCIATE, UserRole.MANAGER])
+  @ApiOperation({ summary: 'Get imported tickets (OPEN and CLOSED status)' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filter by OPEN or CLOSED status' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
+  @ApiResponse({ status: 200, description: 'Imported tickets retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getImportedTickets(@Query(ValidationPipe) filters: TicketFilterDto) {
+    return this.ticketsService.getImportedTickets(filters);
+  }
+
   @Get(':id')
   @Roles([UserRole.ASSOCIATE, UserRole.MANAGER])
   @ApiOperation({ summary: 'Get ticket by ID' })

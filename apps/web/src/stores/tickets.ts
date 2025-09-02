@@ -4,6 +4,7 @@ import { api } from '@/services/api'
 
 interface TicketsState {
   tickets: Ticket[]
+  importedTickets: Ticket[]
   currentTicket: Ticket | null
   loading: boolean
   error: string | null
@@ -22,6 +23,7 @@ interface TicketsState {
   
   // Actions
   fetchTickets: (filters?: any) => Promise<void>
+  fetchImportedTickets: (filters?: any) => Promise<void>
   fetchTicket: (id: string) => Promise<void>
   createTicket: (data: CreateTicketDto) => Promise<Ticket>
   updateTicket: (id: string, data: UpdateTicketDto) => Promise<Ticket>
@@ -34,6 +36,7 @@ interface TicketsState {
 
 export const useTicketsStore = create<TicketsState>((set, get) => ({
   tickets: [],
+  importedTickets: [],
   currentTicket: null,
   loading: false,
   error: null,
@@ -185,6 +188,36 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
 
   clearError: () => {
     set({ error: null })
+  },
+
+  fetchImportedTickets: async (filters = {}) => {
+    set({ loading: true, error: null })
+    try {
+      const { pagination } = get()
+      const params = {
+        ...filters,
+        page: Math.max(1, Math.floor(pagination.page || 1)),
+        limit: Math.min(100, Math.max(1, Math.floor(pagination.limit || 10)))
+      }
+      
+      const response = await api.get('/tickets/imported', { params })
+      const { data: importedTickets, pagination: responsePagination } = response.data
+      
+      set({ 
+        importedTickets, 
+        pagination: { 
+          ...pagination, 
+          total: responsePagination.total || 0,
+          totalPages: responsePagination.totalPages || 0
+        },
+        loading: false 
+      })
+    } catch (error: any) {
+      set({ 
+        error: error.response?.data?.message || 'Failed to fetch imported tickets',
+        loading: false 
+      })
+    }
   },
 
   setCurrentTicket: (ticket: Ticket | null) => {

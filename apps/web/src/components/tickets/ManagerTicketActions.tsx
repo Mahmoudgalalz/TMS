@@ -23,10 +23,35 @@ const ManagerTicketActions = ({ ticket, onUpdate }: ManagerTicketActionsProps) =
   const [reason, setReason] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
 
+  // Helper function to get severity level for comparison
+  const getSeverityLevel = (severity: TicketSeverity): number => {
+    const levels = {
+      [TicketSeverity.EASY]: 1,
+      [TicketSeverity.LOW]: 2,
+      [TicketSeverity.MEDIUM]: 3,
+      [TicketSeverity.HIGH]: 4,
+      [TicketSeverity.VERY_HIGH]: 5,
+    }
+    return levels[severity] || 3
+  }
+
+  // Get the impact of severity change
+  const getSeverityChangeImpact = () => {
+    const currentLevel = getSeverityLevel(ticket.severity)
+    const newLevel = getSeverityLevel(selectedSeverity)
+    
+    if (newLevel < currentLevel) {
+      return { type: 'lowered', newStatus: 'Pending', color: 'text-green-700' }
+    } else if (newLevel > currentLevel) {
+      return { type: 'increased', newStatus: 'Review', color: 'text-orange-700' }
+    }
+    return { type: 'same', newStatus: 'No change', color: 'text-gray-600' }
+  }
+
   // Check if Manager can perform actions on this ticket
-  const canManage = user?.role === 'manager' && ticket.createdById !== user.id
-  const canApprove = canManage && (ticket.status === TicketStatus.DRAFT || ticket.status === TicketStatus.REVIEW)
-  const canChangeSeverity = canManage
+  const canManage = user?.role === 'manager' && ticket.createdById !== user.id && ticket.status === TicketStatus.DRAFT
+  const canApprove = canManage && ticket.status === TicketStatus.DRAFT
+  const canChangeSeverity = canManage && ticket.status === TicketStatus.DRAFT
 
   const handleSeverityChange = async () => {
     if (!reason.trim()) {
@@ -80,13 +105,19 @@ const ManagerTicketActions = ({ ticket, onUpdate }: ManagerTicketActionsProps) =
   }
 
   if (!canManage) {
+    let message = 'You cannot manage tickets you created.'
+    
+    if (user?.role === 'manager' && ticket.createdById !== user.id && ticket.status !== TicketStatus.DRAFT) {
+      message = `Managers can only modify tickets in DRAFT status. This ticket is currently ${ticket.status}.`
+    }
+    
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-amber-600">Manager Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500">You cannot manage tickets you created.</p>
+          <p className="text-gray-500">{message}</p>
         </CardContent>
       </Card>
     )
@@ -151,12 +182,37 @@ const ManagerTicketActions = ({ ticket, onUpdate }: ManagerTicketActionsProps) =
                   />
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <p className="text-sm text-amber-800">
-                    <strong>Note:</strong> Changing severity will move the ticket to <strong>Review</strong> status, 
-                    requiring the Associate to re-evaluate and resubmit.
-                  </p>
-                </div>
+                {(() => {
+                  const impact = getSeverityChangeImpact()
+                  return (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="text-sm text-blue-800">
+                        <p className="font-medium mb-2">Severity Change Impact:</p>
+                        {impact.type !== 'same' ? (
+                          <div className="bg-white rounded p-3 border border-blue-300">
+                            <p className="font-medium">
+                              Severity {impact.type}: <span className={`font-semibold ${impact.color}`}>{ticket.severity}</span> → <span className={`font-semibold ${impact.color}`}>{selectedSeverity}</span>
+                            </p>
+                            <p className="text-sm mt-1">
+                              Ticket status will change to: <span className={`font-semibold ${impact.color}`}>{impact.newStatus}</span>
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-gray-600">
+                            <p>No severity change - status will remain the same</p>
+                          </div>
+                        )}
+                        <div className="mt-3 text-xs">
+                          <p><strong>Rules:</strong></p>
+                          <ul className="list-disc list-inside space-y-1 mt-1">
+                            <li>Lowering severity → Pending status</li>
+                            <li>Increasing severity → Review status (high-priority)</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 <Button
                   onClick={handleSeverityChange}

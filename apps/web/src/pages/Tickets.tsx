@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { PlusIcon, FunnelIcon } from '@heroicons/react/24/outline'
-import { ticketsApi } from '../services/api'
+import { PlusIcon, FunnelIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { ticketsApi, csvApi } from '../services/api'
 import { TicketStatus, TicketSeverity, TicketFilterDto, Ticket } from '@service-ticket/types'
 
 const Tickets = () => {
@@ -12,6 +12,32 @@ const Tickets = () => {
     sortBy: 'createdAt',
     sortOrder: 'desc',
   })
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const response = await csvApi.exportTickets()
+      const { fileName } = response.data
+      
+      // Download the file
+      const downloadResponse = await csvApi.downloadCsv(fileName)
+      const blob = new Blob([downloadResponse.data], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Export failed:', error)
+      alert('Export failed. Please try again.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['tickets', query],
@@ -84,7 +110,15 @@ const Tickets = () => {
             A list of all service tickets in your system.
           </p>
         </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-3">
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+          >
+            <ArrowDownTrayIcon className="-ml-1 mr-2 h-5 w-5" />
+            {isExporting ? 'Exporting...' : 'Export CSV'}
+          </button>
           <Link
             to="/tickets/new"
             className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 sm:w-auto"

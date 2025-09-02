@@ -74,6 +74,8 @@ export const ticketsApi = {
     api.get('/tickets/my', { params: query }),
   getMyCreatedTickets: (query?: TicketQueryParams): Promise<{ data: Ticket[]; pagination: any }> =>
     api.get('/tickets/my/created', { params: query }),
+  getImportedTickets: (query?: TicketQueryParams): Promise<{ data: Ticket[]; pagination: any }> =>
+    api.get('/tickets/imported', { params: query }),
   approveTicket: (id: string, data: { reason?: string }): Promise<{ data: Ticket }> =>
     api.post(`/tickets/${id}/approve`, data),
 }
@@ -111,7 +113,7 @@ export const csvApi = {
     includeResolved?: boolean;
     dateFrom?: string;
     dateTo?: string;
-  }) => api.post('/csv/export', null, { params: options }),
+  }) => api.post('/csv/export', {}, { params: options }),
   downloadCsv: (fileName: string) =>
     api.get(`/csv/download/${fileName}`, { responseType: 'blob' }),
   importTickets: (file: FormData) =>

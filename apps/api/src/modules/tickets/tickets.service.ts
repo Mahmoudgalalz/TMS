@@ -1,6 +1,6 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, desc, asc, ilike, isNull } from 'drizzle-orm';
+import { eq, and, desc, asc, ilike, isNull, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { tickets, ticketHistory, users } from '../../database/schema';
 import { TicketSeverity, TicketStatus } from '@service-ticket/types';
@@ -171,19 +171,30 @@ export class TicketsService {
       assignedToId: existingTicket.assignedToId,
     };
 
-    const updateData = {
-      ...updateTicketDto,
+    // Filter out undefined values and prepare update data
+    const updateData: any = {
       updatedAt: new Date(),
     };
     
-    // Convert dueDate to string format
+    // Valid database fields that can be updated
+    const validUpdateFields = ['title', 'description', 'severity', 'status', 'assignedToId', 'dueDate'];
+    
+    // Only include defined fields from updateTicketDto that are valid database columns
+    Object.keys(updateTicketDto).forEach(key => {
+      const value = updateTicketDto[key as keyof UpdateTicketDto];
+      if (value !== undefined && value !== null && validUpdateFields.includes(key)) {
+        updateData[key] = value;
+      }
+    });
+    
+    // Convert dueDate to string format if present
     if (updateData.dueDate) {
-      (updateData as any).dueDate = new Date(updateData.dueDate).toISOString().split('T')[0];
+      updateData.dueDate = new Date(updateData.dueDate).toISOString().split('T')[0];
     }
     
     const [updatedTicket] = await this.db
       .update(tickets)
-      .set(updateData as any)
+      .set(updateData)
       .where(eq(tickets.id, id))
       .returning();
 
@@ -217,9 +228,9 @@ export class TicketsService {
       throw new BadRequestException('Managers cannot approve tickets they created');
     }
     
-    // Managers can approve tickets in Draft or Review status
-    if (existingTicket.status !== TicketStatus.DRAFT && existingTicket.status !== TicketStatus.REVIEW) {
-      throw new BadRequestException('Only tickets in Draft or Review status can be approved');
+    // Managers can only approve tickets in Draft status
+    if (existingTicket.status !== TicketStatus.DRAFT) {
+      throw new BadRequestException('Only tickets in Draft status can be approved');
     }
 
     // Approve ticket by changing status to PENDING
@@ -299,6 +310,80 @@ export class TicketsService {
     return history;
   }
 
+  async getImportedTickets(filters: TicketFilterDto = {}) {
+    // Build conditions for imported tickets (OPEN or CLOSED status)
+    const conditions = [
+      isNull(tickets.deletedAt),
+      // Only include tickets that have been imported (OPEN or CLOSED status)
+      inArray(tickets.status, [TicketStatus.OPEN, TicketStatus.CLOSED])
+    ];
+    
+    // Apply additional filters if provided
+    if (filters.status && (filters.status === TicketStatus.OPEN || filters.status === TicketStatus.CLOSED)) {
+      conditions.pop(); // Remove the general status filter
+      conditions.push(eq(tickets.status, filters.status));
+    }
+    
+    if (filters.search) {
+      conditions.push(ilike(tickets.title, `%${filters.search}%`));
+    }
+
+    // Apply sorting
+    const sortField = filters.sortBy || 'updatedAt';
+    const sortOrder = filters.sortOrder || 'desc';
+    
+    const validSortFields = {
+      createdAt: tickets.createdAt,
+      updatedAt: tickets.updatedAt,
+      dueDate: tickets.dueDate,
+      severity: tickets.severity,
+      status: tickets.status,
+      title: tickets.title,
+    };
+    
+    const sortColumn = validSortFields[sortField as keyof typeof validSortFields] || tickets.updatedAt;
+    const orderByClause = sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn);
+
+    const query = this.db
+      .select({
+        id: tickets.id,
+        ticketNumber: tickets.ticketNumber,
+        title: tickets.title,
+        description: tickets.description,
+        severity: tickets.severity,
+        status: tickets.status,
+        dueDate: tickets.dueDate,
+        createdAt: tickets.createdAt,
+        updatedAt: tickets.updatedAt,
+      })
+      .from(tickets)
+      .where(and(...conditions))
+      .orderBy(orderByClause);
+
+    // Apply pagination
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const offset = (page - 1) * limit;
+
+    const results = await query.limit(limit).offset(offset);
+    
+    // Get total count for pagination with same filters
+    const [{ count }] = await this.db
+      .select({ count: tickets.id })
+      .from(tickets)
+      .where(and(...conditions));
+
+    return {
+      data: results,
+      pagination: {
+        page,
+        limit,
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
+  }
+
   private async generateTicketNumber(): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = `TKT-${year}`;
@@ -357,6 +442,11 @@ export class TicketsService {
         throw new BadRequestException('Managers cannot edit tickets they created');
       }
 
+      // Managers can only work with DRAFT status tickets
+      if (existingTicket.status !== TicketStatus.DRAFT) {
+        throw new BadRequestException('Managers can only modify tickets in DRAFT status');
+      }
+
       // Managers can only change severity, not other fields directly
       if (updateDto.title || updateDto.description || updateDto.assignedToId || updateDto.dueDate) {
         throw new BadRequestException('Managers can only change ticket severity');
@@ -373,8 +463,17 @@ export class TicketsService {
           throw new BadRequestException('Severity change reason is mandatory for Managers');
         }
         
-        // Any severity change -> REVIEW (requires Associate re-evaluation)
-        updateDto.status = TicketStatus.REVIEW;
+        const currentSeverityLevel = this.getSeverityLevel(existingTicket.severity as TicketSeverity);
+        const newSeverityLevel = this.getSeverityLevel(updateDto.severity);
+        
+        if (newSeverityLevel < currentSeverityLevel) {
+          // Severity lowered -> Pending status
+          updateDto.status = TicketStatus.PENDING;
+        } else if (newSeverityLevel > currentSeverityLevel) {
+          // Severity increased -> Review status (high-priority, needs Associate attention)
+          updateDto.status = TicketStatus.REVIEW;
+        }
+        // If same level, no status change needed
       }
     }
   }

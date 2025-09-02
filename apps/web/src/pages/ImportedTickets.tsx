@@ -4,20 +4,18 @@ import { useTicketsStore } from '../stores/tickets'
 import { TicketStatus, Ticket } from '@service-ticket/types'
 
 export default function ImportedTickets() {
-  const { tickets, fetchTickets, loading } = useTicketsStore()
+  const { importedTickets, fetchImportedTickets, loading } = useTicketsStore()
   const [activeTab, setActiveTab] = useState<'open' | 'closed'>('open')
 
   useEffect(() => {
-    fetchTickets()
-  }, [fetchTickets])
+    fetchImportedTickets()
+  }, [fetchImportedTickets])
 
-  // Filter tickets that were imported (Open or Closed status)
-  const importedTickets = tickets.filter(ticket => 
-    ticket.status === TicketStatus.OPEN || ticket.status === TicketStatus.CLOSED
-  )
+  // Filter imported tickets by status
+  const allImportedTickets = importedTickets || []
 
-  const openTickets = importedTickets.filter(ticket => ticket.status === TicketStatus.OPEN)
-  const closedTickets = importedTickets.filter(ticket => ticket.status === TicketStatus.CLOSED)
+  const openTickets = allImportedTickets.filter(ticket => ticket.status === TicketStatus.OPEN)
+  const closedTickets = allImportedTickets.filter(ticket => ticket.status === TicketStatus.CLOSED)
 
   const currentTickets = activeTab === 'open' ? openTickets : closedTickets
 
@@ -62,7 +60,7 @@ export default function ImportedTickets() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Imported Tickets</h1>
         <div className="text-sm text-gray-600">
-          Total Imported: {importedTickets.length} tickets
+          Total Imported: {allImportedTickets.length} tickets
         </div>
       </div>
 
