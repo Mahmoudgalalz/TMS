@@ -14,7 +14,7 @@ interface TicketQueryParams {
   search?: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://3.221.83.148:3001/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://13.221.21.100:3001/api/v1'
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
