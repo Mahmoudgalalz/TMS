@@ -21,32 +21,39 @@ The new optimized Terraform infrastructure has been successfully deployed with s
 ### Monitoring
 - **CloudWatch Dashboard**: https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards:name=service-ticket-system-dev-dashboard
 
-## 🌐 **Persistent IP Addresses**
+## 🌐 **Reverse Proxy Architecture with Unified Access**
 
-I've created **persistent Elastic IP addresses** for your services:
+I've implemented a **reverse proxy solution** using nginx to provide unified access through a single IP:
 
-### **API Service**
-- **Persistent IP**: `44.207.204.113` (eipalloc-055ec61030448a064)
-- **Port**: 3001
-- **Full URL**: http://44.207.204.113:3001
+### **Current Service Configuration**
+- **Reverse Proxy Service**: http://3.94.62.219 (Web service with nginx proxy)
+- **API Service**: http://3.239.121.9:3001 (Backend API service)
 
-### **Web Service** 
-- **Persistent IP**: `34.234.191.38` (eipalloc-01505f154b03683f0)
-- **Port**: 80
-- **Full URL**: http://34.234.191.38
+### **Access Points**
+- **Web Application**: http://3.94.62.219:80 (Serves static files + proxies API calls)
+- **Direct API Access**: http://3.94.62.219:3001 (Proxies to backend API)
 
-### **Current Status**
-- ✅ **Elastic IPs Created**: Both persistent IPs are allocated
-- ✅ **Secrets Manager Updated**: Configuration includes persistent URLs
-- ✅ **Nginx Configuration**: Updated to use persistent API IP
-- 🔄 **Service Association**: In progress - services need to be restarted to use new IPs
+### **Nginx Reverse Proxy Configuration**
+The web service now includes nginx configuration that:
+- **Port 80**: Serves the web application and proxies `/api/` requests to the backend
+- **Port 3001**: Directly proxies all requests to the API service at `3.239.121.9:3001`
 
-## 🌐 **Access Your Application**
+### **Architecture Benefits**
+- ✅ **Single Entry Point**: Both web and API accessible through `3.94.62.219`
+- ✅ **Reverse Proxy**: Nginx handles routing between frontend and backend
+- ✅ **CORS Handling**: Proper CORS headers configured for API requests
+- ✅ **Load Balancing**: Can easily scale backend services
 
-**Frontend**: http://34.234.191.38 (Persistent IP)
-**API**: http://44.207.204.113:3001 (Persistent IP)
+### **Traffic Flow**
+```
+Internet → Reverse Proxy (3.94.62.219) → Backend Services
+  ├── Port 80: Web App + API proxy (/api/*)
+  └── Port 3001: Direct API proxy (all requests)
+```
 
-These IP addresses will **never change** and remain persistent across deployments.
+### **Reserved Static IP**
+- **Static IP Available**: `3.221.83.148` (eipalloc-0b895add64aeae682)
+- **Status**: Reserved for future use when EIP association permissions are available
 
 ## 🔧 Configuration Changes Made
 

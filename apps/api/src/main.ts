@@ -17,7 +17,10 @@ async function bootstrap() {
   );
 
   // CORS configuration
-  app.enableCors(CORS_CONFIG);
+  app.enableCors({
+    origin: '*', // just for the demo
+    credentials: CORS_CONFIG.credentials,
+  });
 
   // API prefix
   app.setGlobalPrefix(APP_CONFIG.apiPrefix);
