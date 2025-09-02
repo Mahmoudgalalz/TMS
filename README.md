@@ -2,6 +2,13 @@
 
 A comprehensive service ticket management system built with Turborepo, featuring a modern tech stack with AI-powered automation.
 
+Access the API
+http://13.221.21.100:3001/api/v1
+API Docs 
+http://13.221.21.100:3001/docs
+
+Dashboard
+http://ec2-44-193-78-89.compute-1.amazonaws.com
 ## 🏗️ Architecture
 
 This project uses a **Turborepo monorepo** structure with the following applications and packages:
